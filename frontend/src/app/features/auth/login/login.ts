@@ -1,4 +1,3 @@
-
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import {
@@ -18,22 +17,23 @@ import { AuthService } from '../../../core/services/auth';
   styleUrl: './login.css'
 })
 export class LoginComponent {
-  private fb = inject(FormBuilder);
-  private authService = inject(AuthService);
-  private router = inject(Router);
+  private readonly fb = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
   loading = false;
   showPassword = false;
   errorMessage = '';
 
+  // Alineado con el backend: { email, password }
   form = this.fb.nonNullable.group({
-    correo: ['', [Validators.required, Validators.email]],
+    email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     recordar: [false]
   });
 
-  get correo() {
-    return this.form.controls.correo;
+  get email() {
+    return this.form.controls.email;
   }
 
   get password() {
@@ -53,23 +53,27 @@ export class LoginComponent {
     }
 
     this.loading = true;
-    const { correo, password, recordar } =
-      this.form.getRawValue();
+    const { email, password, recordar } = this.form.getRawValue();
 
-    this.authService.login(
-      { correo, password },
-      recordar
-    ).pipe(
-      finalize(() => this.loading = false)
-    ).subscribe({
-      next: () => {
-        this.router.navigateByUrl('/dashboard');
-      },
-      error: (error) => {
-        this.errorMessage =
-          error?.error?.message ??
-          'No fue posible iniciar sesión. Verifica tus credenciales.';
-      }
-    });
+    this.authService
+      .login({ email, password }, recordar)
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: () => {
+          this.router.navigateByUrl('/dashboard');
+        },
+        error: (error) => {
+          // Prioriza errores de campo del backend (401 con errors.email[]),
+          // luego el message genérico, luego el fallback.
+          const fieldError =
+            error?.error?.errors?.email?.[0] ??
+            error?.error?.errors?.password?.[0];
+
+          this.errorMessage =
+            fieldError ??
+            error?.error?.message ??
+            'No fue posible iniciar sesión. Verifica tus credenciales.';
+        }
+      });
   }
 }

@@ -1,17 +1,19 @@
-
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth';
 
-export const authGuard: CanActivateFn = (_route, state) => {
+/** Bloquea rutas privadas si no hay sesión. */
+export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  if (auth.isAuthenticated()) {
-    return true;
-  }
+  return auth.isAuthenticated() ? true : router.createUrlTree(['/login']);
+};
 
-  return router.createUrlTree(['/login'], {
-    queryParams: { returnUrl: state.url }
-  });
+/** Evita que un usuario logueado vuelva a /login. */
+export const guestGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  return auth.isAuthenticated() ? router.createUrlTree(['/dashboard']) : true;
 };

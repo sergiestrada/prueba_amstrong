@@ -1,4 +1,3 @@
-
 :host {
   display: block;
   min-height: 100vh;
@@ -25,11 +24,7 @@
   padding: clamp(30px, 6vw, 85px);
   color: #fff;
   background:
-    radial-gradient(
-      circle at 10% 10%,
-      #275b8d 0,
-      transparent 38%
-    ),
+    radial-gradient(circle at 10% 10%, #275b8d 0, transparent 38%),
     linear-gradient(145deg, #123c65, #071b32);
 }
 
@@ -54,7 +49,17 @@
   border: 2px solid #a9d5ff;
   border-radius: 15px;
   color: #a9d5ff;
-  font-size: 36px;
+  transition: transform .25s ease, border-color .25s ease;
+}
+
+.brand-logo:hover .shield {
+  transform: translateY(-2px);
+  border-color: #cfe7ff;
+}
+
+.shield svg {
+  width: 26px;
+  height: 26px;
 }
 
 .brand-logo > span {
@@ -116,7 +121,11 @@
   border-radius: 12px;
   background: #ffffff0d;
   color: #9bd0ff;
-  font-size: 23px;
+}
+
+.benefit-icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .benefit strong,
@@ -219,9 +228,14 @@
   transition: border-color .2s, box-shadow .2s;
 }
 
-.field-group input:focus {
+.field-group input:focus,
+.field-group input:focus-visible {
   border-color: #3479b8;
   box-shadow: 0 0 0 4px #3479b81c;
+}
+
+.field-group input[aria-invalid="true"] {
+  border-color: #e3a1a6;
 }
 
 .field-group input::placeholder {
@@ -242,11 +256,18 @@
   right: 12px;
   transform: translateY(-50%);
   border: 0;
+  border-radius: 6px;
+  padding: 4px 6px;
   background: transparent;
   color: #245e93;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
+  transition: background .15s ease;
+}
+
+.password-toggle:hover {
+  background: #eaf2fb;
 }
 
 .field-error {
@@ -297,7 +318,7 @@
   color: #fff;
   font: inherit;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
   cursor: pointer;
   transition: transform .2s, box-shadow .2s;
 }
@@ -305,6 +326,11 @@
 .submit-button:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 12px 22px #123e6738;
+}
+
+.submit-button:focus-visible {
+  outline: 3px solid #79b4ec;
+  outline-offset: 3px;
 }
 
 .submit-button:disabled {
@@ -394,7 +420,11 @@
     border-radius: 12px;
     background: #123c65;
     color: #fff;
-    font-size: 29px;
+  }
+
+  .mobile-shield svg {
+    width: 22px;
+    height: 22px;
   }
 
   .mobile-brand strong,
@@ -439,5 +469,6 @@
   *::before,
   *::after {
     transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
   }
 }
