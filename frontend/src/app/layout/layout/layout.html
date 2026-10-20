@@ -41,6 +41,17 @@
         </span>
         <span class="nav-label" *ngIf="!collapsed()">Por servicio</span>
       </a>
+      <a routerLink="/dashboard/orders" routerLinkActive="active"
+   class="nav-item" (click)="closeMobile()"
+   title="Órdenes">
+  <span class="nav-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 5h6a2 2 0 0 1 2 2v12l-5-3-5 3V7a2 2 0 0 1 2-2z"/>
+    </svg>
+  </span>
+  <span class="nav-label" *ngIf="!collapsed()">Órdenes</span>
+</a>
     </nav>
 
     <div class="sidebar-footer" *ngIf="!collapsed()">

@@ -29,6 +29,12 @@ export const routes: Routes = [
           import('./features/vehicles/vehicles-list/vehicles-list')
             .then((m) => m.VehiclesListComponent),
         data: { mode: 'due' }
+      },
+       {
+        path: 'orders',
+        loadComponent: () =>
+          import('./features/orders/orders-list/orders-list')
+            .then((m) => m.OrdersListComponent)
       }
     ]
   },

@@ -1,0 +1,177 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Órdenes de servicio</h1>
+      <p>Registra y da seguimiento a las órdenes de mantenimiento de la flotilla.</p>
+    </div>
+
+    <button class="btn-primary" (click)="openCreate()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Nueva orden
+    </button>
+  </header>
+
+  <div class="feedback" *ngIf="feedback() as f"
+       [class.success]="f.type === 'success'"
+       [class.error]="f.type === 'error'">
+    {{ f.text }}
+  </div>
+
+  <form class="filters" [formGroup]="filters">
+    <input type="search" formControlName="search"
+           placeholder="Buscar por folio o descripción…">
+
+    <select formControlName="status">
+      <option value="">Todos los estatus</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="en_progreso">En progreso</option>
+      <option value="completada">Completada</option>
+      <option value="cancelada">Cancelada</option>
+    </select>
+
+    <select formControlName="prioridad">
+      <option value="">Toda prioridad</option>
+      <option value="baja">Baja</option>
+      <option value="media">Media</option>
+      <option value="alta">Alta</option>
+      <option value="critica">Crítica</option>
+    </select>
+
+    <select formControlName="tipo">
+      <option value="">Todo tipo</option>
+      <option value="preventivo">Preventivo</option>
+      <option value="correctivo">Correctivo</option>
+      <option value="emergencia">Emergencia</option>
+    </select>
+  </form>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Folio</th>
+            <th>Vehículo</th>
+            <th>Descripción</th>
+            <th>Prioridad</th>
+            <th>Estatus</th>
+            <th>Programada</th>
+            <th>Costo</th>
+            <th class="right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading()">
+            <td colspan="8" class="center muted">Cargando órdenes…</td>
+          </tr>
+          <tr *ngIf="!loading() && items().length === 0">
+            <td colspan="8" class="center muted">No hay órdenes registradas.</td>
+          </tr>
+
+          <tr *ngFor="let o of items()">
+            <td><code class="folio">{{ o.folio }}</code></td>
+
+            <td>
+              <strong>{{ o.vehiculo?.marca }} {{ o.vehiculo?.modelo }}</strong>
+              <div class="muted small">{{ o.vehiculo?.placa }} · {{ o.vehiculo?.anio }}</div>
+            </td>
+
+            <td class="col-desc" [title]="o.descripcion">
+              <div class="ellipsis">{{ o.descripcion }}</div>
+              <div class="muted small">{{ typeLabel(o.tipo) }}</div>
+            </td>
+
+            <td>
+              <span class="badge" [class]="priorityBadge(o.prioridad).cls">
+                {{ priorityBadge(o.prioridad).text }}
+              </span>
+            </td>
+
+            <td>
+              <span class="badge" [class]="statusBadge(o.status).cls">
+                {{ statusBadge(o.status).text }}
+              </span>
+            </td>
+
+            <td>
+              {{ o.fecha_programada ? (o.fecha_programada | date:'dd/MM/yyyy') : '—' }}
+            </td>
+
+            <td>
+              <div>{{ formatMoney(o.costo_estimado) }}</div>
+              <div class="muted small" *ngIf="o.costo_real">
+                Real: {{ formatMoney(o.costo_real) }}
+              </div>
+            </td>
+
+            <td class="right actions">
+              <button class="icon-btn small" (click)="openDetail(o)" title="Ver detalle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+
+              <button class="icon-btn small" (click)="openEdit(o)"
+                      [disabled]="isClosed(o)"
+                      [title]="isClosed(o) ? 'Orden cerrada — no editable' : 'Editar'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+              </button>
+
+              <button class="icon-btn small status" (click)="openStatus(o)"
+                      [disabled]="o.transiciones_disponibles.length === 0"
+                      [title]="o.transiciones_disponibles.length === 0 ? 'Sin transiciones disponibles' : 'Cambiar estatus'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="pagination" *ngIf="meta() as m">
+      <div class="muted small">
+        Mostrando {{ m.from ?? 0 }}–{{ m.to ?? 0 }} de {{ m.total }}
+      </div>
+      <div class="pages">
+        <button class="page-btn" (click)="goToPage(m.current_page - 1)"
+                [disabled]="m.current_page <= 1">‹</button>
+        <button *ngFor="let p of pages()" class="page-btn"
+                [class.active]="p === m.current_page"
+                (click)="goToPage(p)">{{ p }}</button>
+        <button class="page-btn" (click)="goToPage(m.current_page + 1)"
+                [disabled]="m.current_page >= m.last_page">›</button>
+      </div>
+    </footer>
+  </div>
+</section>
+
+<!-- Modales -->
+<app-order-form-modal
+  *ngIf="formOpen()"
+  [order]="editing()"
+  (saved)="onSaved($event, editing() !== null)"
+  (closed)="closeForm()" />
+
+<app-order-status-modal
+  *ngIf="statusOpen() && statusOrder() as so"
+  [order]="so"
+  (changed)="onStatusChanged($event)"
+  (closed)="closeStatus()" />
+
+<app-order-detail-modal
+  *ngIf="detailOpen() && detailOrder() as do"
+  [order]="do"
+  (closed)="closeDetail()" />

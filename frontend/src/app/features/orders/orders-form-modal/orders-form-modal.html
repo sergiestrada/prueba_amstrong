@@ -1,0 +1,108 @@
+<div class="modal-backdrop" (click)="cancel()">
+  <div class="modal-panel" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <div>
+        <h3>{{ isEdit() ? 'Editar orden' : 'Nueva orden' }}</h3>
+        <p class="muted small">
+          {{ isEdit() ? 'Actualiza los datos descriptivos de la orden.' : 'Registra una nueva orden de servicio.' }}
+        </p>
+      </div>
+      <button class="icon-close" (click)="cancel()" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="error-banner" *ngIf="errorMessage() as e">{{ e }}</div>
+    <div class="error-banner" *ngIf="vehiclesError() as e">{{ e }}</div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="grid">
+        <div class="field full">
+          <label for="vehiculo_id">Vehículo *</label>
+          <select id="vehiculo_id" formControlName="vehiculo_id">
+            <option [ngValue]="0" disabled>Cargando vehículos…</option>
+            <option *ngFor="let v of vehicles()" [ngValue]="v.id">
+              {{ v.placa }} — {{ v.marca }} {{ v.modelo }} ({{ v.anio }})
+            </option>
+          </select>
+          <small class="err" *ngIf="vehiculo_id.touched && vehiculo_id.invalid">
+            Selecciona un vehículo.
+          </small>
+          <small class="hint" *ngIf="vehiclesReady() && vehicles().length === 0">
+            No hay vehículos disponibles. Registra uno primero.
+          </small>
+        </div>
+
+        <div class="field">
+          <label for="tipo">Tipo *</label>
+          <select id="tipo" formControlName="tipo">
+            <option value="preventivo">Preventivo</option>
+            <option value="correctivo">Correctivo</option>
+            <option value="emergencia">Emergencia</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="prioridad">Prioridad *</label>
+          <select id="prioridad" formControlName="prioridad">
+            <option value="baja">Baja</option>
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+            <option value="critica">Crítica</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="fecha_programada">Fecha programada</label>
+          <input id="fecha_programada" type="date" formControlName="fecha_programada">
+        </div>
+
+        <div class="field">
+          <label for="costo_estimado">Costo estimado</label>
+          <input id="costo_estimado" type="number" min="0" step="0.01"
+                 formControlName="costo_estimado" placeholder="0.00">
+        </div>
+
+        <div class="field">
+          <label for="kilometraje_ingreso">Kilometraje de ingreso</label>
+          <input id="kilometraje_ingreso" type="number" min="0"
+                 formControlName="kilometraje_ingreso" placeholder="0">
+        </div>
+
+        <div class="field full">
+          <label for="descripcion">Descripción *</label>
+          <textarea id="descripcion" rows="3" formControlName="descripcion"
+                    placeholder="Describe el trabajo a realizar…"></textarea>
+          <small class="err" *ngIf="descripcion.touched && descripcion.hasError('required')">
+            Requerida.
+          </small>
+          <small class="err" *ngIf="descripcion.touched && descripcion.hasError('maxlength')">
+            Máximo 2000 caracteres.
+          </small>
+        </div>
+
+        <div class="field full">
+          <label for="notas">Notas</label>
+          <textarea id="notas" rows="2" formControlName="notas"
+                    placeholder="Observaciones opcionales…"></textarea>
+          <small class="err" *ngIf="notas.touched && notas.hasError('maxlength')">
+            Máximo 2000 caracteres.
+          </small>
+        </div>
+      </div>
+
+      <footer class="modal-actions">
+        <button type="button" class="btn-ghost" (click)="cancel()" [disabled]="submitting()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="submitting()">
+          {{ submitting() ? 'Guardando…' : (isEdit() ? 'Guardar cambios' : 'Crear orden') }}
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>
