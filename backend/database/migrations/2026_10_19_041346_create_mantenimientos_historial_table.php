@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('vehiculo_id')->constrained('vehiculos')->restrictOnDelete();
             // Una orden cerrada puede producir como máximo un registro de historial.
-            $table->foreignId('orden_id')->unique()->constrained('ordenes_mantenimiento')->restrictOnDelete();
+            $table->foreignId('orden_id')->unique()->constrained('ordenes')->restrictOnDelete();
             $table->enum('tipo', ['Preventivo', 'Correctivo']);
             $table->unsignedInteger('odometro');
             $table->date('fecha');

@@ -11,58 +11,29 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Validation\Rule;
 
 class VehiculoController extends Controller
 {
-    private const SORTABLE = [
-        'id', 'placa', 'marca', 'modelo', 'anio',
-        'kilometraje', 'fecha_proximo_servicio', 'created_at',
-    ];
-
     public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Vehiculo::class);
 
         $query = Vehiculo::query();
 
-        // Filtro de búsqueda libre
         if ($search = trim((string) $request->input('search'))) {
             $query->where(function ($q) use ($search) {
                 $q->where('placa', 'like', "%{$search}%")
-                  ->orWhere('marca', 'like', "%{$search}%")
-                  ->orWhere('modelo', 'like', "%{$search}%")
-                  ->orWhere('vin', 'like', "%{$search}%");
+                  ->orWhere('numero_economico', 'like', "%{$search}%");
             });
         }
 
-        // Filtros exactos
-        foreach (['marca', 'modelo', 'tipo', 'estado'] as $field) {
-            if ($request->filled($field)) {
-                $query->where($field, $request->input($field));
-            }
+        if ($request->filled('estatus')) {
+            $query->where('estatus', $request->input('estatus'));
         }
 
-        if ($request->filled('anio')) {
-            $query->where('anio', $request->integer('anio'));
-        }
+        $query->orderBy($request->input('sort_by', 'created_at'),
+                        $request->input('sort_dir', 'desc') === 'asc' ? 'asc' : 'desc');
 
-        if ($request->has('activo')) {
-            $query->where('activo', $request->boolean('activo'));
-        }
-
-        // Ordenamiento
-        $sortBy  = $request->input('sort_by', 'created_at');
-        $sortDir = strtolower((string) $request->input('sort_dir', 'desc')) === 'asc'
-            ? 'asc' : 'desc';
-
-        if (in_array($sortBy, self::SORTABLE, true)) {
-            $query->orderBy($sortBy, $sortDir);
-        } else {
-            $query->orderByDesc('id');
-        }
-
-        // Paginación acotada
         $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
 
         return VehiculoResource::collection($query->paginate($perPage));
@@ -70,7 +41,10 @@ class VehiculoController extends Controller
 
     public function store(StoreVehiculoRequest $request): JsonResponse
     {
-        $vehiculo = Vehiculo::create($request->validated());
+        $data = $request->validated();
+        $data['fecha_alta'] = $data['fecha_alta'] ?? now()->toDateString();
+
+        $vehiculo = Vehiculo::create($data);
 
         return (new VehiculoResource($vehiculo))
             ->response()
@@ -81,49 +55,36 @@ class VehiculoController extends Controller
     {
         $this->authorize('view', $vehiculo);
 
-        return new VehiculoResource($vehiculo);
+        // RF-05: incluye flag de requiere servicio para aviso visible
+        return (new VehiculoResource($vehiculo))
+            ->additional(['requiere_servicio' => $vehiculo->requiereServicio()]);
     }
 
     public function update(UpdateVehiculoRequest $request, Vehiculo $vehiculo): VehiculoResource
     {
         $vehiculo->fill($request->validated())->save();
-
         return new VehiculoResource($vehiculo->refresh());
     }
 
+    /** RN-08: dar de baja = estatus "baja". Solo admin. */
     public function destroy(Vehiculo $vehiculo): JsonResponse
     {
         $this->authorize('delete', $vehiculo);
 
-        $vehiculo->delete();
+        $vehiculo->update(['estatus' => Vehiculo::ESTATUS_BAJA]);
 
-        return response()->json([
-            'message' => 'Vehículo eliminado correctamente.',
-        ], Response::HTTP_OK);
+        return response()->json(['message' => 'Vehículo dado de baja.']);
     }
 
+    /** RF-05 / RN-07 */
     public function dueForService(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Vehiculo::class);
 
-        $validated = $request->validate([
-            'days'             => ['sometimes', 'integer', 'min:-365', 'max:365'],
-            'include_inactive' => ['sometimes', 'boolean'],
-            'per_page'         => ['sometimes', 'integer', 'min:1', 'max:100'],
-        ]);
+        $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
 
-        $days            = (int) ($validated['days'] ?? 7);
-        $includeInactive = (bool) ($validated['include_inactive'] ?? false);
-        $perPage         = (int) ($validated['per_page'] ?? 15);
-
-        $query = Vehiculo::query()->dueForService($days);
-
-        if (! $includeInactive) {
-            $query->where('activo', true);
-        }
-
-        $query->orderBy('fecha_proximo_servicio', 'asc');
-
-        return VehiculoResource::collection($query->paginate($perPage));
+        return VehiculoResource::collection(
+            Vehiculo::dueForService()->orderBy('odometro_actual', 'desc')->paginate($perPage)
+        );
     }
 }

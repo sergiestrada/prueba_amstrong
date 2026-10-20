@@ -10,27 +10,20 @@ return new class extends Migration
     {
         Schema::create('vehiculos', function (Blueprint $table) {
             $table->id();
-            $table->string('placa', 20)->unique();
+            $table->string('placa', 20)->unique();                         // RF-01 + RN-01
+            $table->string('numero_economico', 30)->unique();              // RF-01 + RN-01
             $table->string('marca', 80);
             $table->string('modelo', 80);
-            $table->year('anio');
-            $table->string('color', 50)->nullable();
-            $table->string('vin', 17)->nullable()->unique();
-            $table->enum('tipo', ['sedan', 'suv', 'pickup', 'camion', 'moto', 'otro'])
-                ->default('sedan');
-            $table->unsignedInteger('kilometraje')->default(0);
-            $table->date('fecha_ultimo_servicio')->nullable();
-            $table->date('fecha_proximo_servicio')->nullable();
-            $table->enum('estado', ['activo', 'mantenimiento', 'inactivo'])
+            $table->unsignedSmallInteger('anio');
+            $table->unsignedInteger('odometro_actual')->default(0);        // RF-01
+            $table->enum('estatus', ['activo', 'en_taller', 'baja'])       // RF-01 + RN-03/06
                 ->default('activo');
-            $table->boolean('activo')->default(true);
+            $table->date('fecha_alta');                                    // RN-07 (referencia)
             $table->text('notas')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['activo', 'estado']);
-            $table->index('fecha_proximo_servicio');
-            $table->index(['marca', 'modelo']);
+            $table->index(['estatus', 'odometro_actual']);
         });
     }
 

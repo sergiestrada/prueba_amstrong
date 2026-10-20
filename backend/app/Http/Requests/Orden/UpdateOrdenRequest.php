@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Orden;
 
 use App\Models\Orden;
+use App\Models\Vehiculo;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class UpdateOrdenRequest extends FormRequest
 {
@@ -17,23 +19,31 @@ class UpdateOrdenRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'vehiculo_id'         => ['sometimes', 'integer', 'exists:vehiculos,id'],
-            'asignado_a_id'       => ['nullable', 'integer', 'exists:usuarios,id'],
-            'tipo'                => ['sometimes', 'in:preventivo,correctivo,emergencia'],
-            'prioridad'           => ['sometimes', 'in:baja,media,alta,critica'],
-            'descripcion'         => ['sometimes', 'string', 'max:2000'],
-            'notas'               => ['nullable', 'string', 'max:2000'],
-            'fecha_programada'    => ['nullable', 'date'],
-            'costo_estimado'      => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
-            'kilometraje_ingreso' => ['nullable', 'integer', 'min:0'],
-            // status NO se cambia por aquí — usa PATCH /orders/{id}/status
+            'tipo'             => ['sometimes', 'in:preventivo,correctivo'],
+            'descripcion'      => ['sometimes', 'string', 'max:2000'],
+            'odometro_ingreso' => ['sometimes', 'integer', 'min:0'],
+            'fecha_programada' => ['sometimes', 'date'],
+            'notas'            => ['nullable', 'string', 'max:2000'],
         ];
     }
 
-    public function messages(): array
+    public function after(): array
     {
         return [
-            'status.prohibited' => 'Para cambiar el estatus usa PATCH /api/v1/orders/{id}/status.',
+            function (Validator $v) {
+                $orden = $this->route('orden');
+                if (! $orden) return;
+
+                if ($this->has('odometro_ingreso')) {
+                    $vehiculo = Vehiculo::find($orden->vehiculo_id);
+                    if ($vehiculo && (int) $this->input('odometro_ingreso') < $vehiculo->odometro_actual) {
+                        $v->errors()->add(
+                            'odometro_ingreso',
+                            "El odómetro no puede ser menor al actual del vehículo ({$vehiculo->odometro_actual} km)."
+                        );
+                    }
+                }
+            },
         ];
     }
 }
