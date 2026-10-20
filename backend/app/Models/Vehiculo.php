@@ -2,56 +2,50 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Vehiculo extends Model
 {
+    use HasFactory, SoftDeletes;
+
     protected $table = 'vehiculos';
 
     protected $fillable = [
-        'placa', 'numero_economico', 'marca', 'modelo',
-        'anio', 'odometro_actual', 'estatus', 'fecha_alta',
+        'placa',
+        'marca',
+        'modelo',
+        'anio',
+        'color',
+        'vin',
+        'tipo',
+        'kilometraje',
+        'fecha_ultimo_servicio',
+        'fecha_proximo_servicio',
+        'estado',
+        'activo',
+        'notas',
     ];
 
-    protected function casts(): array
+    protected $casts = [
+        'anio'                    => 'integer',
+        'kilometraje'             => 'integer',
+        'fecha_ultimo_servicio'   => 'date',
+        'fecha_proximo_servicio'  => 'date',
+        'activo'                  => 'boolean',
+    ];
+
+    /** Vehículos que requieren servicio en los próximos N días. */
+    public function scopeDueForService(Builder $query, int $daysAhead = 7): Builder
     {
-        return [
-            'anio' => 'integer',
-            'odometro_actual' => 'integer',
-            'fecha_alta' => 'date',
-        ];
-    }
-
-    public const ESTATUS = ['Activo', 'En taller', 'Baja'];
-
-    public function ordenes(): HasMany
-    {
-        return $this->hasMany(OrdenMantenimiento::class, 'vehiculo_id');
-    }
-
-    public function mantenimientos(): HasMany
-    {
-        return $this->hasMany(MantenimientoHistorial::class, 'vehiculo_id');
-    }
-
-    public function historialEstatus(): HasMany
-    {
-        return $this->hasMany(VehiculoEstatusHistorial::class, 'vehiculo_id');
-    }
-
-    public function requiereServicio(): bool
-    {
-        $ultimoPreventivo = $this->mantenimientos()
-            ->where('tipo', 'Preventivo')
-            ->orderByDesc('fecha')
-            ->first();
-
-        $fechaReferencia = $ultimoPreventivo?->fecha ?? $this->fecha_alta;
-        $odometroReferencia = $ultimoPreventivo?->odometro ?? 0;
-
-        return $this->odometro_actual - $odometroReferencia > 10000
-            || $fechaReferencia->copy()->addDays(180)->lt(now()->startOfDay());
+        return $query
+            ->whereNotNull('fecha_proximo_servicio')
+            ->whereDate(
+                'fecha_proximo_servicio',
+                '<=',
+                now()->addDays($daysAhead)->toDateString()
+            );
     }
 }
