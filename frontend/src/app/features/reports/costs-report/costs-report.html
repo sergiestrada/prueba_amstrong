@@ -1,0 +1,303 @@
+<p>costs-report works!</p>
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Reporte de costos</h1>
+      <p>Costos por vehículo y tipo de mantenimiento en el periodo seleccionado.</p>
+    </div>
+  </header>
+
+  <div class="feedback" *ngIf="feedback() as f"
+       [class.success]="f.type === 'success'"
+       [class.error]="f.type === 'error'">
+    {{ f.text }}
+  </div>
+
+  <!-- Filtros -->
+  <form class="filters" [formGroup]="filters" (ngSubmit)="reload()">
+    <div class="filter-field">
+      <label for="from">Desde</label>
+      <input id="from" type="date" formControlName="from">
+    </div>
+
+    <div class="filter-field">
+      <label for="to">Hasta</label>
+      <input id="to" type="date" formControlName="to">
+    </div>
+
+    <div class="filter-field">
+      <label for="date_field">Campo de fecha</label>
+      <select id="date_field" formControlName="date_field">
+        <option value="created_at">Fecha de creación</option>
+        <option value="fecha_cierre">Fecha de cierre</option>
+        <option value="fecha_inicio">Fecha de inicio</option>
+        <option value="fecha_programada">Fecha programada</option>
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label for="status">Estatus</label>
+      <select id="status" formControlName="status">
+        <option value="">Todos</option>
+        <option value="pendiente">Pendiente</option>
+        <option value="en_progreso">En progreso</option>
+        <option value="completada">Completada</option>
+        <option value="cancelada">Cancelada</option>
+      </select>
+    </div>
+
+    <div class="filter-field checkbox-field">
+      <label>
+        <input type="checkbox" formControlName="include_cancelled">
+        <span>Incluir canceladas</span>
+      </label>
+    </div>
+
+    <div class="filter-actions">
+      <button type="button" class="btn-ghost" (click)="clearDates()">Todo el histórico</button>
+      <button type="button" class="btn-ghost" (click)="resetDates()">Año actual</button>
+      <button type="submit" class="btn-primary" [disabled]="loading()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+        </svg>
+        Generar reporte
+      </button>
+    </div>
+  </form>
+
+  <!-- Loading -->
+  <div class="loading-block" *ngIf="loading()">
+    <div class="spinner"></div>
+    <p class="muted">Generando reporte…</p>
+  </div>
+
+  <!-- Contenido -->
+  <ng-container *ngIf="!loading() && report() as r">
+
+    <!-- Período y filtros aplicados -->
+    <div class="period-bar">
+      <span class="period-chip">
+        <strong>Periodo:</strong>
+        {{ r.period.from ?? 'Sin inicio' }} → {{ r.period.to ?? 'Sin fin' }}
+      </span>
+      <span class="period-chip" *ngIf="r.period.date_field">
+        <strong>Campo:</strong> {{ r.period.date_field }}
+      </span>
+      <span class="period-chip" *ngIf="r.filters.status">
+        <strong>Estatus:</strong> {{ r.filters.status }}
+      </span>
+      <span class="period-chip" *ngIf="r.filters.include_cancelled">
+        Incluye canceladas
+      </span>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpis">
+      <div class="kpi">
+        <div class="kpi-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 5h6a2 2 0 0 1 2 2v12l-5-3-5 3V7a2 2 0 0 1 2-2z"/>
+          </svg>
+        </div>
+        <div>
+          <span class="kpi-label">Órdenes</span>
+          <strong class="kpi-value">{{ r.totals.ordenes | number }}</strong>
+        </div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-icon gray">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div>
+          <span class="kpi-label">Costo estimado</span>
+          <strong class="kpi-value">{{ money(r.totals.costo_estimado) }}</strong>
+        </div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div>
+          <span class="kpi-label">Costo real</span>
+          <strong class="kpi-value">{{ money(r.totals.costo_real) }}</strong>
+        </div>
+      </div>
+
+      <div class="kpi"
+           *ngIf="deviation(r.totals.costo_estimado, r.totals.costo_real) as dev">
+        <div class="kpi-icon" [class]="dev.cls === 'dev-up' ? 'red' : dev.cls === 'dev-down' ? 'green' : 'gray'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline *ngIf="dev.pct >= 0" points="18 15 12 9 6 15"/>
+            <polyline *ngIf="dev.pct < 0" points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+        <div>
+          <span class="kpi-label">Desviación</span>
+          <strong class="kpi-value" [class]="dev.cls">
+            {{ dev.pct > 0 ? '+' : '' }}{{ dev.pct | number:'1.1-1' }}%
+          </strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráfico por tipo -->
+    <div class="card chart-card" *ngIf="chartData().length > 0">
+      <header class="card-header">
+        <h2>Distribución por tipo</h2>
+        <span class="muted small">Costo estimado vs real por tipo de mantenimiento</span>
+      </header>
+
+      <div class="chart">
+        <div class="chart-row" *ngFor="let row of chartData()">
+          <div class="chart-label">
+            <span class="badge" [class]="typeClass(row.tipo)">{{ typeLabel(row.tipo) }}</span>
+            <small class="muted">{{ row.ordenes }} orden{{ row.ordenes === 1 ? '' : 'es' }}</small>
+          </div>
+
+          <div class="chart-bars">
+            <div class="bar-row">
+              <span class="bar-caption">Estimado</span>
+              <div class="bar-track">
+                <div class="bar bar-est" [style.width.%]="row.pctEstimado"></div>
+              </div>
+              <span class="bar-value">{{ money(row.costo_estimado) }}</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-caption">Real</span>
+              <div class="bar-track">
+                <div class="bar bar-real" [style.width.%]="row.pctReal"></div>
+              </div>
+              <span class="bar-value">{{ money(row.costo_real) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla por vehículo -->
+    <div class="card">
+      <header class="card-header">
+        <h2>Costos por vehículo</h2>
+        <div class="header-actions">
+          <button class="btn-link" (click)="expandAll()">Expandir todo</button>
+          <button class="btn-link" (click)="collapseAll()">Contraer todo</button>
+        </div>
+      </header>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="expand-col"></th>
+              <th>Vehículo</th>
+              <th class="num">Órdenes</th>
+              <th class="num">Costo estimado</th>
+              <th class="num">Costo real</th>
+              <th class="num">Desviación</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="r.por_vehiculo.length === 0">
+              <td colspan="6" class="center muted">
+                No hay costos registrados en el periodo.
+              </td>
+            </tr>
+
+            <ng-container *ngFor="let v of r.por_vehiculo; trackBy: trackByVehicle">
+              <tr class="vehicle-row"
+                  [class.expanded]="isExpanded(v.vehiculo_id)"
+                  (click)="toggleExpand(v.vehiculo_id)">
+                <td class="expand-col">
+                  <span class="chevron" [class.open]="isExpanded(v.vehiculo_id)">›</span>
+                </td>
+                <td>
+                  <div class="vehicle-cell">
+                    <code class="placa">{{ v.placa }}</code>
+                    <div>
+                      <strong>{{ v.marca }} {{ v.modelo }}</strong>
+                      <div class="muted small">Año {{ v.anio }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="num">{{ v.ordenes }}</td>
+                <td class="num">{{ money(v.costo_estimado) }}</td>
+                <td class="num"><strong>{{ money(v.costo_real) }}</strong></td>
+                <td class="num">
+                  <ng-container *ngIf="deviation(v.costo_estimado, v.costo_real) as dev; else noDev">
+                    <span class="dev" [class]="dev.cls">
+                      {{ dev.pct > 0 ? '+' : '' }}{{ dev.pct | number:'1.1-1' }}%
+                    </span>
+                  </ng-container>
+                  <ng-template #noDev><span class="muted">—</span></ng-template>
+                </td>
+              </tr>
+
+              <tr class="detail-row" *ngIf="isExpanded(v.vehiculo_id)">
+                <td colspan="6">
+                  <div class="breakdown">
+                    <div class="breakdown-header">
+                      Desglose por tipo de mantenimiento
+                    </div>
+                    <table class="inner-table">
+                      <thead>
+                        <tr>
+                          <th>Tipo</th>
+                          <th class="num">Órdenes</th>
+                          <th class="num">Costo estimado</th>
+                          <th class="num">Costo real</th>
+                          <th class="num">Desviación</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let entry of tipoEntries(v)">
+                          <td>
+                            <span class="badge" [class]="typeClass(entry.tipo)">
+                              {{ typeLabel(entry.tipo) }}
+                            </span>
+                          </td>
+                          <td class="num">{{ entry.data.ordenes }}</td>
+                          <td class="num">{{ money(entry.data.costo_estimado) }}</td>
+                          <td class="num"><strong>{{ money(entry.data.costo_real) }}</strong></td>
+                          <td class="num">
+                            <ng-container *ngIf="deviation(entry.data.costo_estimado, entry.data.costo_real) as dev; else noDev2">
+                              <span class="dev" [class]="dev.cls">
+                                {{ dev.pct > 0 ? '+' : '' }}{{ dev.pct | number:'1.1-1' }}%
+                              </span>
+                            </ng-container>
+                            <ng-template #noDev2><span class="muted">—</span></ng-template>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Estado vacío (sin reporte aún) -->
+  <div class="empty-state" *ngIf="!loading() && !report()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 5h6a2 2 0 0 1 2 2v12l-5-3-5 3V7a2 2 0 0 1 2-2z"/>
+    </svg>
+    <p>Configura los filtros y presiona <strong>Generar reporte</strong>.</p>
+  </div>
+</section>

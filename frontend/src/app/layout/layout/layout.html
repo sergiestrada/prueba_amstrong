@@ -4,9 +4,8 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="1.6" stroke-linejoin="round">
-          <path d="M12 2.5 3.5 6.5v5.7c0 5 3.7 9 8.5 9.3 4.8-.3 8.5-4.3 8.5-9.3V6.5L12 2.5z"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+          <path d="M12 2.5 3.5 6.5v5.7c0 5 3.7 9 8.5 9.3 4.8-.3 8.5-4.3 8.5-9.3V6.5L12 2.5z" />
         </svg>
       </div>
       <div class="brand-text" *ngIf="!collapsed()">
@@ -16,42 +15,50 @@
     </div>
 
     <nav class="nav">
-      <a routerLink="/dashboard/vehicles" routerLinkActive="active"
-         [routerLinkActiveOptions]="{ exact: true }"
-         class="nav-item" (click)="closeMobile()"
-         title="Vehículos">
+      <a routerLink="/dashboard/vehicles" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+        class="nav-item" (click)="closeMobile()" title="Vehículos">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 17h14M5 17l1.5-5h11L19 17M5 17v2m14-2v2M7 12V8a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M5 17h14M5 17l1.5-5h11L19 17M5 17v2m14-2v2M7 12V8a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4" />
           </svg>
         </span>
         <span class="nav-label" *ngIf="!collapsed()">Vehículos</span>
       </a>
 
-      <a routerLink="/dashboard/due" routerLinkActive="active"
-         class="nav-item" (click)="closeMobile()"
-         title="Por servicio">
+      <a routerLink="/dashboard/due" routerLinkActive="active" class="nav-item" (click)="closeMobile()"
+        title="Por servicio">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"/>
-            <polyline points="12 7 12 12 15 14"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <polyline points="12 7 12 12 15 14" />
           </svg>
         </span>
         <span class="nav-label" *ngIf="!collapsed()">Por servicio</span>
       </a>
-      <a routerLink="/dashboard/orders" routerLinkActive="active"
-   class="nav-item" (click)="closeMobile()"
-   title="Órdenes">
-  <span class="nav-icon">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M9 5h6a2 2 0 0 1 2 2v12l-5-3-5 3V7a2 2 0 0 1 2-2z"/>
-    </svg>
-  </span>
-  <span class="nav-label" *ngIf="!collapsed()">Órdenes</span>
-</a>
+      <a routerLink="/dashboard/orders" routerLinkActive="active" class="nav-item" (click)="closeMobile()"
+        title="Órdenes">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M9 5h6a2 2 0 0 1 2 2v12l-5-3-5 3V7a2 2 0 0 1 2-2z" />
+          </svg>
+        </span>
+        <span class="nav-label" *ngIf="!collapsed()">Órdenes</span>
+      </a>
+      <a routerLink="/dashboard/reports/costs" routerLinkActive="active" class="nav-item" (click)="closeMobile()"
+        title="Reporte de costos">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+        </span>
+        <span class="nav-label" *ngIf="!collapsed()">Reporte de costos</span>
+      </a>
     </nav>
 
     <div class="sidebar-footer" *ngIf="!collapsed()">
@@ -62,42 +69,42 @@
   <div class="main">
     <header class="topbar">
       <button class="icon-btn desktop-only" (click)="toggleSidebar()" aria-label="Alternar menú">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
         </svg>
       </button>
 
       <button class="icon-btn mobile-only" (click)="toggleMobile()" aria-label="Menú">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
         </svg>
       </button>
 
       <div class="topbar-spacer"></div>
 
       @if (user(); as u) {
-        <div class="user-menu">
-          <div class="avatar">{{ u.nombre[0] }}{{ u.apellido?.[0] ?? '' }}</div>
-          <div class="user-info desktop-only">
-            <strong>{{ u.nombre }} {{ u.apellido }}</strong>
-            <small>{{ u.rol }}</small>
-          </div>
-          <button class="btn-logout" (click)="logout()" title="Cerrar sesión">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            <span class="logout-label desktop-only">Salir</span>
-          </button>
+      <div class="user-menu">
+        <div class="avatar">{{ u.nombre[0] }}{{ u.apellido?.[0] ?? '' }}</div>
+        <div class="user-info desktop-only">
+          <strong>{{ u.nombre }} {{ u.apellido }}</strong>
+          <small>{{ u.rol }}</small>
         </div>
+        <button class="btn-logout" (click)="logout()" title="Cerrar sesión">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          <span class="logout-label desktop-only">Salir</span>
+        </button>
+      </div>
       }
     </header>
 
