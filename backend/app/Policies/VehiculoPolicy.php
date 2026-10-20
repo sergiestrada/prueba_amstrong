@@ -20,19 +20,19 @@ class VehiculoPolicy
     public function create(Usuario $user): bool
     {
         return (bool) $user->activo
-            && $this->hasAnyRole($user, ['admin', 'supervisor']);
+            && $this->hasAnyRole($user, ['ADMINISTRADOR', 'supervisor']);
     }
 
     public function update(Usuario $user, Vehiculo $vehiculo): bool
     {
         return (bool) $user->activo
-            && $this->hasAnyRole($user, ['admin', 'supervisor']);
+            && $this->hasAnyRole($user, ['ADMINISTRADOR', 'supervisor']);
     }
 
     public function delete(Usuario $user, Vehiculo $vehiculo): bool
     {
         return (bool) $user->activo
-            && $this->hasAnyRole($user, ['admin']);
+            && $this->hasAnyRole($user, ['ADMINISTRADOR']);
     }
 
     private function hasAnyRole(Usuario $user, array $roles): bool
