@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::create('usuarios', function (Blueprint $table) {
             $table->id();
             $table->string('nombre', 100);
-            $table->string('correo', 150)->unique();
+            $table->string('email', 150)->unique();
             $table->string('password');
             $table->foreignId('rol_id')->constrained('roles')->restrictOnDelete();
             $table->boolean('activo')->default(true);

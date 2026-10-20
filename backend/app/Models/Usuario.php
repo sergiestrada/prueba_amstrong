@@ -16,7 +16,7 @@ class Usuario extends Authenticatable
 
     protected $table = 'usuarios';
 
-    protected $fillable = ['nombre', 'correo', 'password', 'rol_id', 'activo'];
+    protected $fillable = ['nombre', 'email', 'password', 'rol_id', 'activo'];
 
     protected $hidden = ['password', 'remember_token'];
 
