@@ -1,0 +1,174 @@
+
+<main class="login-page">
+
+  <!-- Panel corporativo -->
+  <section class="brand-panel">
+    <div class="brand-content">
+
+      <div class="brand-logo">
+        <div class="shield">⬡</div>
+        <span>SEGURIDAD</span>
+        <small>CONTROL · PROTECCIÓN · CONFIANZA</small>
+      </div>
+
+      <div class="brand-message">
+        <span class="eyebrow">
+          SISTEMA DE GESTIÓN DE FLOTILLA
+        </span>
+
+        <h1>
+          Tu seguridad,<br>
+          nuestra prioridad.
+        </h1>
+
+        <p>
+          Tecnología y compromiso para mantener
+          tu operación en movimiento.
+        </p>
+      </div>
+
+      <div class="benefits">
+        <div class="benefit">
+          <span class="benefit-icon">✓</span>
+          <div>
+            <strong>Control centralizado</strong>
+            <small>Gestiona tus vehículos fácilmente.</small>
+          </div>
+        </div>
+
+        <div class="benefit">
+          <span class="benefit-icon">↻</span>
+          <div>
+            <strong>Mantenimiento oportuno</strong>
+            <small>Anticípate a los próximos servicios.</small>
+          </div>
+        </div>
+
+        <div class="benefit">
+          <span class="benefit-icon">◇</span>
+          <div>
+            <strong>Acceso protegido</strong>
+            <small>Información según tu perfil.</small>
+          </div>
+        </div>
+      </div>
+
+      <footer class="brand-footer">
+        PROTEGEMOS LO QUE MUEVE TU NEGOCIO
+      </footer>
+    </div>
+  </section>
+
+  <!-- Formulario -->
+  <section class="form-panel">
+    <div class="login-card">
+
+      <div class="mobile-brand">
+        <div class="mobile-shield">⬡</div>
+        <div>
+          <strong>SEGURIDAD</strong>
+          <small>CONTROL · PROTECCIÓN · CONFIANZA</small>
+        </div>
+      </div>
+
+      <div class="form-heading">
+        <span class="security-label">
+          <span class="status-dot"></span>
+          PORTAL SEGURO
+        </span>
+
+        <h2>Bienvenido de nuevo</h2>
+        <p>
+          Ingresa tus credenciales para acceder al sistema.
+        </p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()">
+
+        <div class="field-group">
+          <label for="correo">Correo electrónico</label>
+
+          <input
+            id="correo"
+            type="email"
+            formControlName="correo"
+            placeholder="nombre@empresa.com"
+            autocomplete="username"
+          >
+
+          <small class="field-error"
+            *ngIf="correo.touched && correo.hasError('required')">
+            El correo es obligatorio.
+          </small>
+
+          <small class="field-error"
+            *ngIf="correo.touched && correo.hasError('email')">
+            Ingresa un correo válido.
+          </small>
+        </div>
+
+        <div class="field-group">
+          <label for="password">Contraseña</label>
+
+          <div class="password-wrap">
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="Ingresa tu contraseña"
+              autocomplete="current-password"
+            >
+
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePassword()">
+              {{ showPassword ? 'Ocultar' : 'Mostrar' }}
+            </button>
+          </div>
+
+          <small class="field-error"
+            *ngIf="password.touched && password.invalid">
+            La contraseña es obligatoria y debe tener
+            al menos 8 caracteres.
+          </small>
+        </div>
+
+        <div class="form-options">
+          <label class="remember">
+            <input type="checkbox" formControlName="recordar">
+            Recordarme
+          </label>
+
+          <a routerLink="/recuperar-contrasena">
+            ¿Olvidaste tu contraseña?
+          </a>
+        </div>
+
+        <div class="error-message" *ngIf="errorMessage" role="alert">
+          {{ errorMessage }}
+        </div>
+
+        <button
+          class="submit-button"
+          type="submit"
+          [disabled]="loading">
+
+          <span *ngIf="!loading">Iniciar sesión →</span>
+          <span *ngIf="loading">Validando acceso...</span>
+
+        </button>
+
+      </form>
+
+      <div class="secure-note">
+        ◈ Conexión protegida · Acceso autorizado
+      </div>
+
+      <footer class="card-footer">
+        © 2026 Seguridad · Sistema de Gestión de Flotilla
+      </footer>
+
+    </div>
+  </section>
+</main>
