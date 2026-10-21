@@ -10,22 +10,20 @@ class UpdateOrdenStatusRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $orden = $this->route('orden');
-        return $orden instanceof Orden
-            && ($this->user()?->can('changeStatus', $orden) ?? false);
+        return true; // La autorización real se valida en OrdenController::updateStatus
     }
 
     public function rules(): array
     {
         /** @var Orden|null $orden */
-        $orden     = $this->route('orden');
-        $current   = $orden?->status;
+        $orden      = $this->route('orden');
+        $current    = $orden?->status;
         $permitidos = Orden::TRANSICIONES[$current] ?? [];
 
         return [
-            'status'      => ['required', 'string', Rule::in($permitidos)],
-            'notas'       => ['nullable', 'string', 'max:2000'],
-            'costo_real'  => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'status'     => ['required', 'string', Rule::in($permitidos)],
+            'notas'      => ['nullable', 'string', 'max:2000'],
+            'costo_real' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
         ];
     }
 

@@ -14,24 +14,31 @@ return new class extends Migration
 
             $table->foreignId('vehiculo_id')->constrained('vehiculos')->restrictOnDelete();
             $table->foreignId('creado_por_id')->constrained('usuarios')->restrictOnDelete();
+            $table->foreignId('asignado_a_id')->nullable()
+                  ->constrained('usuarios')->nullOnDelete();
 
-            $table->enum('tipo', ['preventivo', 'correctivo']);            // RF-02
-            $table->enum('estatus', [                                       // RF-02
-                'abierta', 'en_proceso', 'cerrada', 'cancelada',
-            ])->default('abierta');
+            $table->enum('tipo', ['preventivo', 'correctivo']);
+            $table->enum('status', [
+                'pendiente', 'en_progreso', 'completada', 'cancelada',
+            ])->default('pendiente');
+            $table->enum('prioridad', ['baja', 'media', 'alta'])->default('media');
 
             $table->text('descripcion');
-            $table->unsignedInteger('odometro_ingreso');                    // RF-02 + RN-04
-            $table->date('fecha_programada');                               // RF-02 (obligatoria)
-            $table->date('fecha_cierre')->nullable();                       // RN-05
-            $table->decimal('costo', 10, 2)->nullable();                    // RN-05
+            $table->unsignedInteger('odometro_ingreso');
+            $table->date('fecha_programada');
+            $table->timestamp('fecha_inicio')->nullable();
+            $table->date('fecha_cierre')->nullable();
+
+            $table->decimal('costo', 12, 2)->nullable();
+            $table->decimal('costo_estimado', 12, 2)->nullable();
+            $table->decimal('costo_real', 12, 2)->nullable();
 
             $table->text('notas')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['vehiculo_id', 'estatus']);                      // RN-02
-            $table->index(['estatus', 'tipo']);                             // Reportes
+            $table->index(['vehiculo_id', 'status']);
+            $table->index(['status', 'tipo']);
             $table->index('fecha_programada');
         });
     }

@@ -16,7 +16,6 @@ class Orden extends Model
     public const STATUS_COMPLETADA  = 'completada';
     public const STATUS_CANCELADA   = 'cancelada';
 
-    /** Transiciones permitidas por estado. */
     public const TRANSICIONES = [
         self::STATUS_PENDIENTE   => [self::STATUS_EN_PROGRESO, self::STATUS_CANCELADA],
         self::STATUS_EN_PROGRESO => [self::STATUS_COMPLETADA, self::STATUS_CANCELADA],
@@ -27,19 +26,32 @@ class Orden extends Model
     protected $table = 'ordenes';
 
     protected $fillable = [
-        'folio', 'vehiculo_id', 'creado_por_id', 'asignado_a_id',
-        'tipo', 'prioridad', 'status', 'descripcion', 'notas',
-        'fecha_programada', 'fecha_inicio', 'fecha_cierre',
-        'costo_estimado', 'costo_real', 'kilometraje_ingreso',
+        'folio',
+        'vehiculo_id',
+        'creado_por_id',
+        'asignado_a_id',
+        'tipo',
+        'status',
+        'prioridad',
+        'descripcion',
+        'odometro_ingreso',
+        'fecha_programada',
+        'fecha_inicio',
+        'fecha_cierre',
+        'costo',
+        'costo_estimado',
+        'costo_real',
+        'notas',
     ];
 
     protected $casts = [
-        'fecha_programada'    => 'date',
-        'fecha_inicio'        => 'datetime',
-        'fecha_cierre'        => 'datetime',
-        'costo_estimado'      => 'decimal:2',
-        'costo_real'          => 'decimal:2',
-        'kilometraje_ingreso' => 'integer',
+        'fecha_programada' => 'date',
+        'fecha_inicio'     => 'datetime',
+        'fecha_cierre'     => 'date',
+        'costo'            => 'decimal:2',
+        'costo_estimado'   => 'decimal:2',
+        'costo_real'       => 'decimal:2',
+        'odometro_ingreso' => 'integer',
     ];
 
     protected static function booted(): void
@@ -52,8 +64,8 @@ class Orden extends Model
     }
 
     /**
-     * Folio con formato ORD-YYYY-0001.
-     * Debe llamarse dentro de una transacción (usa lockForUpdate).
+     * Folio con formato ORD-YYYY-0001. Debe ejecutarse dentro de una transacción
+     * (usa lockForUpdate) para evitar colisiones concurrentes.
      */
     public static function nextFolio(): string
     {

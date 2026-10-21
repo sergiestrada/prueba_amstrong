@@ -17,25 +17,18 @@ class VehiculoPolicy
         return (bool) $user->activo;
     }
 
-    /** RF-03 + RN-08: solo el administrador administra vehículos. */
     public function create(Usuario $user): bool
     {
-        return (bool) $user->activo && $this->hasRole($user, 'administrador');
+        return (bool) $user->activo && $user->esAdministrador();
     }
 
     public function update(Usuario $user, Vehiculo $vehiculo): bool
     {
-        return (bool) $user->activo && $this->hasRole($user, 'administrador');
+        return (bool) $user->activo && $user->esAdministrador();
     }
 
-    /** RN-08: solo administrador da de baja. */
     public function delete(Usuario $user, Vehiculo $vehiculo): bool
     {
-        return (bool) $user->activo && $this->hasRole($user, 'administrador');
-    }
-
-    private function hasRole(Usuario $user, string $role): bool
-    {
-        return $user->rol?->nombre === $role;
+        return (bool) $user->activo && $user->esAdministrador();
     }
 }

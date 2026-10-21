@@ -10,9 +10,10 @@ return new class extends Migration {
         Schema::create('vehiculo_estatus_historial', function (Blueprint $table) {
             $table->id();
             $table->foreignId('vehiculo_id')->constrained('vehiculos')->restrictOnDelete();
-            $table->enum('estatus', ['Activo', 'En taller', 'Baja']);
+            $table->enum('estatus', ['activo', 'en_taller', 'baja']);
             $table->string('motivo', 255)->nullable();
-            $table->foreignId('usuario_id')->nullable()->constrained('usuarios')->nullOnDelete();
+            $table->foreignId('usuario_id')->nullable()
+                  ->constrained('usuarios')->nullOnDelete();
             $table->timestamp('fecha_inicio');
             $table->timestamp('fecha_fin')->nullable();
             $table->timestamps();

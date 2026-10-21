@@ -3,11 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\HasApiTokens;
 
 class Usuario extends Authenticatable
@@ -24,7 +23,7 @@ class Usuario extends Authenticatable
     {
         return [
             'password' => 'hashed',
-            'activo' => 'boolean',
+            'activo'   => 'boolean',
         ];
     }
 
@@ -38,9 +37,16 @@ class Usuario extends Authenticatable
         return $this->belongsTo(Rol::class, 'rol_id');
     }
 
+    /** Órdenes creadas por este usuario. */
     public function ordenes(): HasMany
     {
-        return $this->hasMany(OrdenMantenimiento::class, 'usuario_id');
+        return $this->hasMany(Orden::class, 'creado_por_id');
+    }
+
+    /** Órdenes asignadas a este usuario. */
+    public function ordenesAsignadas(): HasMany
+    {
+        return $this->hasMany(Orden::class, 'asignado_a_id');
     }
 
     public function historialEstatus(): HasMany

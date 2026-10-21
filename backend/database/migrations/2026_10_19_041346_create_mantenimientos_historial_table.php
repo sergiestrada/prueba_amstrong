@@ -10,9 +10,8 @@ return new class extends Migration {
         Schema::create('mantenimientos_historial', function (Blueprint $table) {
             $table->id();
             $table->foreignId('vehiculo_id')->constrained('vehiculos')->restrictOnDelete();
-            // Una orden cerrada puede producir como máximo un registro de historial.
             $table->foreignId('orden_id')->unique()->constrained('ordenes')->restrictOnDelete();
-            $table->enum('tipo', ['Preventivo', 'Correctivo']);
+            $table->enum('tipo', ['preventivo', 'correctivo']);
             $table->unsignedInteger('odometro');
             $table->date('fecha');
             $table->decimal('costo', 12, 2);

@@ -17,8 +17,8 @@ class MantenimientoHistorial extends Model
     {
         return [
             'odometro' => 'integer',
-            'fecha' => 'date',
-            'costo' => 'decimal:2',
+            'fecha'    => 'date',
+            'costo'    => 'decimal:2',
         ];
     }
 
@@ -29,6 +29,6 @@ class MantenimientoHistorial extends Model
 
     public function orden(): BelongsTo
     {
-        return $this->belongsTo(OrdenMantenimiento::class, 'orden_id');
+        return $this->belongsTo(Orden::class, 'orden_id');
     }
 }

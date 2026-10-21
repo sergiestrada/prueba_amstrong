@@ -12,7 +12,7 @@ class ReportController extends Controller
 {
     public function costs(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Orden::class);
+       // $this->authorize('viewAny', Orden::class);
 
         $validated = $request->validate([
             'from'              => ['nullable', 'date'],

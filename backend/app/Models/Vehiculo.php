@@ -11,12 +11,12 @@ class Vehiculo extends Model
 {
     use HasFactory, SoftDeletes;
 
-    public const ESTATUS_ACTIVO     = 'activo';
-    public const ESTATUS_EN_TALLER  = 'en_taller';
-    public const ESTATUS_BAJA       = 'baja';
+    public const ESTATUS_ACTIVO    = 'activo';
+    public const ESTATUS_EN_TALLER = 'en_taller';
+    public const ESTATUS_BAJA      = 'baja';
 
-    public const KM_LIMITE          = 10000;   // RN-07
-    public const DIAS_LIMITE        = 180;     // RN-07
+    public const KM_LIMITE   = 10000; // RN-07
+    public const DIAS_LIMITE = 180;   // RN-07
 
     protected $table = 'vehiculos';
 
@@ -41,7 +41,7 @@ class Vehiculo extends Model
     {
         return $this->ordenes()
             ->where('tipo', 'preventivo')
-            ->where('estatus', 'cerrada')
+            ->where('status', Orden::STATUS_COMPLETADA)
             ->orderByDesc('fecha_cierre')
             ->first();
     }
@@ -50,7 +50,7 @@ class Vehiculo extends Model
     public function tieneOrdenActiva(): bool
     {
         return $this->ordenes()
-            ->whereIn('estatus', ['abierta', 'en_proceso'])
+            ->whereIn('status', [Orden::STATUS_PENDIENTE, Orden::STATUS_EN_PROGRESO])
             ->exists();
     }
 
@@ -59,11 +59,10 @@ class Vehiculo extends Model
     {
         $ultimo = $this->ultimoPreventivoCerrado();
 
-        // Referencia: último cierre preventivo o, si no hay, fecha de alta
-        $referenciaFecha   = $ultimo?->fecha_cierre ?? $this->fecha_alta;
-        $referenciaOdo     = $ultimo?->odometro_ingreso ?? 0;
+        $referenciaFecha = $ultimo?->fecha_cierre ?? $this->fecha_alta;
+        $referenciaOdo   = $ultimo?->odometro_ingreso ?? 0;
 
-        $kmDesde = $this->odometro_actual - $referenciaOdo;
+        $kmDesde   = $this->odometro_actual - $referenciaOdo;
         $diasDesde = $referenciaFecha?->diffInDays(now()) ?? 0;
 
         return $kmDesde > self::KM_LIMITE || $diasDesde > self::DIAS_LIMITE;
@@ -80,7 +79,7 @@ class Vehiculo extends Model
                         ->from('ordenes as ult')
                         ->whereColumn('ult.vehiculo_id', 'vehiculos.id')
                         ->where('ult.tipo', 'preventivo')
-                        ->where('ult.estatus', 'cerrada')
+                        ->where('ult.status', Orden::STATUS_COMPLETADA)
                         ->where(function ($inner) {
                             $inner->whereRaw(
                                 'vehiculos.odometro_actual - ult.odometro_ingreso > ?',
@@ -98,7 +97,7 @@ class Vehiculo extends Model
                             ->from('ordenes')
                             ->whereColumn('ordenes.vehiculo_id', 'vehiculos.id')
                             ->where('ordenes.tipo', 'preventivo')
-                            ->where('ordenes.estatus', 'cerrada');
+                            ->where('ordenes.status', Orden::STATUS_COMPLETADA);
                     })
                     ->where(function ($fallback) {
                         $fallback->where('vehiculos.odometro_actual', '>', self::KM_LIMITE)

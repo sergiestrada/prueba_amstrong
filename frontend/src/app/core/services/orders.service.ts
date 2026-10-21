@@ -13,7 +13,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class OrdersService {
   private readonly http = inject(HttpClient);
-  private readonly base = `${environment.apiUrl}/v1/orders`;
+  private readonly base = `${environment.apiUrl}/orders`;
 
   private readonly _loading = signal(false);
   private readonly _items   = signal<Order[]>([]);

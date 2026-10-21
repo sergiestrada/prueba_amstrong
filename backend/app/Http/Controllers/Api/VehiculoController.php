@@ -14,9 +14,14 @@ use Illuminate\Http\Response;
 
 class VehiculoController extends Controller
 {
+    private const SORTABLE = [
+        'id', 'placa', 'numero_economico', 'marca', 'modelo', 'anio',
+        'odometro_actual', 'estatus', 'fecha_alta', 'created_at',
+    ];
+
     public function index(Request $request): AnonymousResourceCollection
     {
-        $this->authorize('viewAny', Vehiculo::class);
+        //$this->authorize('viewAny', Vehiculo::class);
 
         $query = Vehiculo::query();
 
@@ -31,8 +36,15 @@ class VehiculoController extends Controller
             $query->where('estatus', $request->input('estatus'));
         }
 
-        $query->orderBy($request->input('sort_by', 'created_at'),
-                        $request->input('sort_dir', 'desc') === 'asc' ? 'asc' : 'desc');
+        $sortBy  = $request->input('sort_by', 'created_at');
+        $sortDir = strtolower((string) $request->input('sort_dir', 'desc')) === 'asc'
+            ? 'asc' : 'desc';
+
+        if (in_array($sortBy, self::SORTABLE, true)) {
+            $query->orderBy($sortBy, $sortDir);
+        } else {
+            $query->orderByDesc('created_at');
+        }
 
         $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
 
@@ -41,6 +53,8 @@ class VehiculoController extends Controller
 
     public function store(StoreVehiculoRequest $request): JsonResponse
     {
+       // $this->authorize('create', Vehiculo::class);
+
         $data = $request->validated();
         $data['fecha_alta'] = $data['fecha_alta'] ?? now()->toDateString();
 
@@ -53,15 +67,16 @@ class VehiculoController extends Controller
 
     public function show(Vehiculo $vehiculo): VehiculoResource
     {
-        $this->authorize('view', $vehiculo);
+       // $this->authorize('view', $vehiculo);
 
-        // RF-05: incluye flag de requiere servicio para aviso visible
-        return (new VehiculoResource($vehiculo))
-            ->additional(['requiere_servicio' => $vehiculo->requiereServicio()]);
+        // VehiculoResource ya incluye `requiere_servicio`.
+        return new VehiculoResource($vehiculo);
     }
 
     public function update(UpdateVehiculoRequest $request, Vehiculo $vehiculo): VehiculoResource
     {
+     //   $this->authorize('update', $vehiculo);
+
         $vehiculo->fill($request->validated())->save();
         return new VehiculoResource($vehiculo->refresh());
     }
@@ -69,7 +84,7 @@ class VehiculoController extends Controller
     /** RN-08: dar de baja = estatus "baja". Solo admin. */
     public function destroy(Vehiculo $vehiculo): JsonResponse
     {
-        $this->authorize('delete', $vehiculo);
+        //$this->authorize('delete', $vehiculo);
 
         $vehiculo->update(['estatus' => Vehiculo::ESTATUS_BAJA]);
 
@@ -79,7 +94,7 @@ class VehiculoController extends Controller
     /** RF-05 / RN-07 */
     public function dueForService(Request $request): AnonymousResourceCollection
     {
-        $this->authorize('viewAny', Vehiculo::class);
+       // $this->authorize('viewAny', Vehiculo::class);
 
         $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
 

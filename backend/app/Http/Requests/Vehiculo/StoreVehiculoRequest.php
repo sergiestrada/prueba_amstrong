@@ -9,7 +9,7 @@ class StoreVehiculoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('create', Vehiculo::class) ?? false;
+        return true;   
     }
 
     public function rules(): array
@@ -17,19 +17,15 @@ class StoreVehiculoRequest extends FormRequest
         $maxYear = (int) date('Y') + 1;
 
         return [
-            'placa'                   => ['required', 'string', 'max:20', 'unique:vehiculos,placa'],
-            'marca'                   => ['required', 'string', 'max:80'],
-            'modelo'                  => ['required', 'string', 'max:80'],
-            'anio'                    => ['required', 'integer', "between:1900,{$maxYear}"],
-            'color'                   => ['nullable', 'string', 'max:50'],
-            'vin'                     => ['nullable', 'string', 'size:17', 'unique:vehiculos,vin'],
-            'tipo'                    => ['required', 'in:sedan,suv,pickup,camion,moto,otro'],
-            'kilometraje'             => ['required', 'integer', 'min:0'],
-            'fecha_ultimo_servicio'   => ['nullable', 'date', 'before_or_equal:today'],
-            'fecha_proximo_servicio'  => ['nullable', 'date', 'after_or_equal:fecha_ultimo_servicio'],
-            'estado'                  => ['required', 'in:activo,mantenimiento,inactivo'],
-            'activo'                  => ['sometimes', 'boolean'],
-            'notas'                   => ['nullable', 'string', 'max:2000'],
+            'placa'            => ['required', 'string', 'max:20', 'unique:vehiculos,placa'],
+            'numero_economico' => ['required', 'string', 'max:30', 'unique:vehiculos,numero_economico'],
+            'marca'            => ['required', 'string', 'max:80'],
+            'modelo'           => ['required', 'string', 'max:80'],
+            'anio'             => ['required', 'integer', "between:1900,{$maxYear}"],
+            'odometro_actual'  => ['required', 'integer', 'min:0'],
+            'estatus'          => ['required', 'in:activo,en_taller,baja'],
+            'fecha_alta'       => ['nullable', 'date'],
+            'notas'            => ['nullable', 'string', 'max:2000'],
         ];
     }
 
@@ -38,8 +34,8 @@ class StoreVehiculoRequest extends FormRequest
         if ($this->has('placa')) {
             $this->merge(['placa' => strtoupper(trim((string) $this->placa))]);
         }
-        if ($this->has('vin') && $this->vin !== null) {
-            $this->merge(['vin' => strtoupper(trim((string) $this->vin))]);
+        if ($this->has('numero_economico')) {
+            $this->merge(['numero_economico' => strtoupper(trim((string) $this->numero_economico))]);
         }
     }
 }

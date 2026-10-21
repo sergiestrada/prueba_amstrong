@@ -9,8 +9,7 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        // Solo dos roles según RF-03
-        Rol::updateOrCreate(['id' => 1], ['nombre' => 'administrador']);
-        Rol::updateOrCreate(['id' => 2], ['nombre' => 'capturista']);
+        Rol::updateOrCreate(['id' => 1], ['nombre' => Rol::ADMINISTRADOR]);
+        Rol::updateOrCreate(['id' => 2], ['nombre' => Rol::CAPTURISTA]);
     }
 }

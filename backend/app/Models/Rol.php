@@ -3,18 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Rol extends Model
 {
+    public const ADMINISTRADOR = 'administrador';
+    public const CAPTURISTA    = 'capturista';
+
     protected $table = 'roles';
+    protected $fillable = ['nombre'];
 
-    protected $fillable = ['nombre', 'descripcion'];
-
-    public const ADMINISTRADOR = 'Administrador';
-    public const CAPTURISTA = 'Capturista';
-
-    public function usuarios(): HasMany
+    public function usuarios()
     {
         return $this->hasMany(Usuario::class, 'rol_id');
     }

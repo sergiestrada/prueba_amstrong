@@ -2,48 +2,27 @@
 
 namespace App\Http\Requests\Orden;
 
-use App\Models\Orden;
-use App\Models\Vehiculo;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
 
 class UpdateOrdenRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $orden = $this->route('orden');
-        return $orden instanceof Orden
-            && ($this->user()?->can('update', $orden) ?? false);
+        return true; // La autorización real se valida en OrdenController::update
     }
 
     public function rules(): array
     {
         return [
+            'vehiculo_id'      => ['sometimes', 'integer', 'exists:vehiculos,id'],
             'tipo'             => ['sometimes', 'in:preventivo,correctivo'],
             'descripcion'      => ['sometimes', 'string', 'max:2000'],
             'odometro_ingreso' => ['sometimes', 'integer', 'min:0'],
             'fecha_programada' => ['sometimes', 'date'],
-            'notas'            => ['nullable', 'string', 'max:2000'],
-        ];
-    }
-
-    public function after(): array
-    {
-        return [
-            function (Validator $v) {
-                $orden = $this->route('orden');
-                if (! $orden) return;
-
-                if ($this->has('odometro_ingreso')) {
-                    $vehiculo = Vehiculo::find($orden->vehiculo_id);
-                    if ($vehiculo && (int) $this->input('odometro_ingreso') < $vehiculo->odometro_actual) {
-                        $v->errors()->add(
-                            'odometro_ingreso',
-                            "El odómetro no puede ser menor al actual del vehículo ({$vehiculo->odometro_actual} km)."
-                        );
-                    }
-                }
-            },
+            'prioridad'        => ['sometimes', 'in:baja,media,alta'],
+            'costo_estimado'   => ['sometimes', 'numeric', 'min:0', 'max:99999999.99'],
+            'asignado_a_id'    => ['sometimes', 'nullable', 'integer', 'exists:usuarios,id'],
+            'notas'            => ['sometimes', 'nullable', 'string', 'max:2000'],
         ];
     }
 }
