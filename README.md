@@ -53,7 +53,7 @@ El sistema está diseñado bajo tres pilares:
 |---|---|
 | **Jefe de flota / Administrador** | Registra vehículos nuevos, da de baja unidades obsoletas, revisa reportes de costos mensuales para presupuesto, autoriza cancelaciones de órdenes. |
 | **Capturista / Encargado de taller** | Programa mantenimientos, registra el avance de las órdenes, anota observaciones técnicas, cierra la orden al terminar con costo real. |
-| **Gerencia / Finanzas** | Consulta el reporte de costos por vehículo y por tipo para detectar unidades costosas, planear renovaciones, conciliar gastos. |
+
 
 ---
 
