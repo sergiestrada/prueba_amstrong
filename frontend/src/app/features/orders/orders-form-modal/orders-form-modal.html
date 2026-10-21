@@ -3,38 +3,33 @@
     <header class="modal-header">
       <div>
         <h3>{{ isEdit() ? 'Editar orden' : 'Nueva orden' }}</h3>
-        <p class="muted small">
-          {{ isEdit() ? 'Actualiza los datos descriptivos de la orden.' : 'Registra una nueva orden de servicio.' }}
-        </p>
+        <p class="muted small">Registra los datos del mantenimiento.</p>
       </div>
-      <button class="icon-close" (click)="cancel()" aria-label="Cerrar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
+      <button class="icon-close" (click)="cancel()" aria-label="Cerrar">✕</button>
     </header>
 
-    <div class="error-banner" *ngIf="errorMessage() as e">{{ e }}</div>
-    <div class="error-banner" *ngIf="vehiclesError() as e">{{ e }}</div>
+    @if (errorMessage(); as e) {
+      <div class="error-banner">{{ e }}</div>
+    }
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="grid">
         <div class="field full">
           <label for="vehiculo_id">Vehículo *</label>
           <select id="vehiculo_id" formControlName="vehiculo_id">
-            <option [ngValue]="0" disabled>Cargando vehículos…</option>
-            <option *ngFor="let v of vehicles()" [ngValue]="v.id">
-              {{ v.placa }} — {{ v.marca }} {{ v.modelo }} ({{ v.anio }})
-            </option>
+            <option [ngValue]="0" disabled>— Selecciona —</option>
+            @for (v of vehicles(); track v.id) {
+              <option [ngValue]="v.id">
+                {{ v.placa }} · {{ v.numero_economico }} — {{ v.marca }} {{ v.modelo }} ({{ v.anio }})
+              </option>
+            }
           </select>
-          <small class="err" *ngIf="vehiculo_id.touched && vehiculo_id.invalid">
-            Selecciona un vehículo.
-          </small>
-          <small class="hint" *ngIf="vehiclesReady() && vehicles().length === 0">
-            No hay vehículos disponibles. Registra uno primero.
-          </small>
+          @if (vehiculo_id.touched && vehiculo_id.invalid) {
+            <small class="err">Selecciona un vehículo.</small>
+          }
+          @if (isEdit()) {
+            <small class="hint">El vehículo no se puede cambiar una vez creada la orden.</small>
+          }
         </div>
 
         <div class="field">
@@ -42,63 +37,45 @@
           <select id="tipo" formControlName="tipo">
             <option value="preventivo">Preventivo</option>
             <option value="correctivo">Correctivo</option>
-            <option value="emergencia">Emergencia</option>
           </select>
         </div>
 
         <div class="field">
-          <label for="prioridad">Prioridad *</label>
-          <select id="prioridad" formControlName="prioridad">
-            <option value="baja">Baja</option>
-            <option value="media">Media</option>
-            <option value="alta">Alta</option>
-            <option value="critica">Crítica</option>
-          </select>
+          <label for="odometro_ingreso">Odómetro de ingreso (km) *</label>
+          <input id="odometro_ingreso" type="number" formControlName="odometro_ingreso" min="0">
+          @if (selectedVehicleOdometer() !== null) {
+            <small class="hint">Mínimo: {{ selectedVehicleOdometer()! | number }} km</small>
+          }
+          @if (odometro_ingreso.touched && odometro_ingreso.invalid) {
+            <small class="err">Valor mayor o igual a 0.</small>
+          }
         </div>
 
         <div class="field">
-          <label for="fecha_programada">Fecha programada</label>
+          <label for="fecha_programada">Fecha programada *</label>
           <input id="fecha_programada" type="date" formControlName="fecha_programada">
-        </div>
-
-        <div class="field">
-          <label for="costo_estimado">Costo estimado</label>
-          <input id="costo_estimado" type="number" min="0" step="0.01"
-                 formControlName="costo_estimado" placeholder="0.00">
-        </div>
-
-        <div class="field">
-          <label for="kilometraje_ingreso">Kilometraje de ingreso</label>
-          <input id="kilometraje_ingreso" type="number" min="0"
-                 formControlName="kilometraje_ingreso" placeholder="0">
+          @if (fecha_programada.touched && fecha_programada.invalid) {
+            <small class="err">Requerida.</small>
+          }
         </div>
 
         <div class="field full">
           <label for="descripcion">Descripción *</label>
           <textarea id="descripcion" rows="3" formControlName="descripcion"
-                    placeholder="Describe el trabajo a realizar…"></textarea>
-          <small class="err" *ngIf="descripcion.touched && descripcion.hasError('required')">
-            Requerida.
-          </small>
-          <small class="err" *ngIf="descripcion.touched && descripcion.hasError('maxlength')">
-            Máximo 2000 caracteres.
-          </small>
+                    placeholder="Detalle del trabajo…"></textarea>
+          @if (descripcion.touched && descripcion.invalid) {
+            <small class="err">Requerida (máx. 2000).</small>
+          }
         </div>
 
         <div class="field full">
           <label for="notas">Notas</label>
-          <textarea id="notas" rows="2" formControlName="notas"
-                    placeholder="Observaciones opcionales…"></textarea>
-          <small class="err" *ngIf="notas.touched && notas.hasError('maxlength')">
-            Máximo 2000 caracteres.
-          </small>
+          <textarea id="notas" rows="2" formControlName="notas"></textarea>
         </div>
       </div>
 
       <footer class="modal-actions">
-        <button type="button" class="btn-ghost" (click)="cancel()" [disabled]="submitting()">
-          Cancelar
-        </button>
+        <button type="button" class="btn-ghost" (click)="cancel()" [disabled]="submitting()">Cancelar</button>
         <button type="submit" class="btn-primary" [disabled]="submitting()">
           {{ submitting() ? 'Guardando…' : (isEdit() ? 'Guardar cambios' : 'Crear orden') }}
         </button>

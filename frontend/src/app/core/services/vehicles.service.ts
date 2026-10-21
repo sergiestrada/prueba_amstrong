@@ -36,12 +36,7 @@ export class VehiclesService {
       }));
   }
 
-  dueForService(params: {
-    days?: number;
-    include_inactive?: boolean;
-    per_page?: number;
-    page?: number;
-  } = {}): Observable<PaginatedResponse<Vehicle>> {
+  dueForService(params: { per_page?: number; page?: number } = {}) {
     this._loading.set(true);
     let hp = new HttpParams();
     Object.entries(params).forEach(([k, v]) => {

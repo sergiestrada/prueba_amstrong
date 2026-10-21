@@ -10,7 +10,12 @@
   overflow-y: auto;
   animation: fade .18s ease;
 }
-
+.eco {
+  padding: 4px 8px; border-radius: 6px;
+  background: #fef3c7; color: #946200;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 11px; font-weight: 700; letter-spacing: .5px;
+}
 .modal-panel {
   width: 100%;
   max-width: 720px;

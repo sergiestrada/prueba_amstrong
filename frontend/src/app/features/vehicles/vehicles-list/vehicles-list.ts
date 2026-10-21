@@ -3,13 +3,8 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
-import {
-  Vehicle,
-  VehicleFilters,
-  VehiclePayload,
-  VehicleStatus,
-  VehicleType
-} from '../../../core/models/vehicle';
+import { Vehicle, VehicleFilters, VehicleStatus } from '../../../core/models/vehicle';
+import { AuthService } from '../../../core/services/auth';
 import { VehiclesService } from '../../../core/services/vehicles.service';
 import { VehicleFormModalComponent } from '../vehicles-form-modal/vehicles-form-modal';
 
@@ -24,91 +19,68 @@ type Mode = 'list' | 'due';
 })
 export class VehiclesListComponent implements OnInit {
   private readonly vehiclesService = inject(VehiclesService);
-  private readonly fb = inject(FormBuilder);
-  private readonly route = inject(ActivatedRoute);
+  private readonly authService     = inject(AuthService);
+  private readonly fb              = inject(FormBuilder);
+  private readonly route           = inject(ActivatedRoute);
 
-  readonly items = this.vehiclesService.items;
-  readonly meta = this.vehiclesService.meta;
+  readonly items   = this.vehiclesService.items;
+  readonly meta    = this.vehiclesService.meta;
   readonly loading = this.vehiclesService.loading;
+  readonly isAdmin = this.authService.isAdmin;
 
-  readonly mode = signal<Mode>('list');
-  readonly modalOpen = signal(false);
-  readonly editingVehicle = signal<Vehicle | null>(null);
-  readonly deleting = signal<Vehicle | null>(null);
-  readonly feedback = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+  readonly mode       = signal<Mode>('list');
+  readonly modalOpen  = signal(false);
+  readonly editing    = signal<Vehicle | null>(null);
+  readonly deleting   = signal<Vehicle | null>(null);
+  readonly feedback   = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
   readonly filters = this.fb.nonNullable.group({
-    search: [''],
-    estado: [''],
-    tipo: [''],
-    activo: ['']
+    search:  [''],
+    estatus: ['']
   });
 
   readonly pages = computed(() => {
     const m = this.meta();
     if (!m) return [] as number[];
-    const total = m.last_page;
-    const current = m.current_page;
-    const start = Math.max(1, current - 2);
-    const end = Math.min(total, current + 2);
+    const start = Math.max(1, m.current_page - 2);
+    const end   = Math.min(m.last_page, m.current_page + 2);
     const arr: number[] = [];
     for (let i = start; i <= end; i++) arr.push(i);
     return arr;
   });
 
   ngOnInit(): void {
-    const dataMode = (this.route.snapshot.data['mode'] as Mode) ?? 'list';
-    this.mode.set(dataMode);
+    this.mode.set((this.route.snapshot.data['mode'] as Mode) ?? 'list');
     this.reload();
 
-    this.filters.controls.search.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged())
+    this.filters.controls.search
+      .valueChanges.pipe(debounceTime(300), distinctUntilChanged())
       .subscribe(() => this.reload());
-
-    this.filters.controls.estado.valueChanges.subscribe(() => this.reload());
-    this.filters.controls.tipo.valueChanges.subscribe(() => this.reload());
-    this.filters.controls.activo.valueChanges.subscribe(() => this.reload());
+    this.filters.controls.estatus.valueChanges.subscribe(() => this.reload());
   }
 
   reload(page = 1): void {
     if (this.mode() === 'due') {
-      this.vehiclesService
-        .dueForService({ days: 7, per_page: 15, page })
+      this.vehiclesService.dueForService({ per_page: 15, page })
         .subscribe({ error: () => this.showFeedback('error', 'No se pudieron cargar los vehículos.') });
       return;
     }
 
     const v = this.filters.getRawValue();
     const filters: VehicleFilters = {
-      page,
-      per_page: 15,
-      sort_by: 'created_at',
-      sort_dir: 'desc'
+      page, per_page: 15, sort_by: 'created_at', sort_dir: 'desc'
     };
-    if (v.search) filters.search = v.search;
-    if (v.estado) filters.estado = v.estado as VehicleStatus;
-    if (v.tipo) filters.tipo = v.tipo as VehicleType;
-    if (v.activo) filters.activo = v.activo === '1';
+    if (v.search)  filters.search  = v.search;
+    if (v.estatus) filters.estatus = v.estatus as VehicleStatus;
 
     this.vehiclesService.list(filters).subscribe({
       error: () => this.showFeedback('error', 'No se pudieron cargar los vehículos.')
     });
   }
 
-  openCreate(): void {
-    this.editingVehicle.set(null);
-    this.modalOpen.set(true);
-  }
-
-  openEdit(v: Vehicle): void {
-    this.editingVehicle.set(v);
-    this.modalOpen.set(true);
-  }
-
-  closeModal(): void {
-    this.modalOpen.set(false);
-    this.editingVehicle.set(null);
-  }
+  openCreate(): void { this.editing.set(null); this.modalOpen.set(true); }
+  openEdit(v: Vehicle): void { this.editing.set(v); this.modalOpen.set(true); }
+  closeModal(): void { this.modalOpen.set(false); this.editing.set(null); }
 
   onSaved(_: Vehicle, isEdit: boolean): void {
     this.closeModal();
@@ -126,37 +98,24 @@ export class VehiclesListComponent implements OnInit {
       next: () => {
         this.deleting.set(null);
         this.reload();
-        this.showFeedback('success', 'Vehículo eliminado.');
+        this.showFeedback('success', 'Vehículo dado de baja.');
       },
-      error: () => this.showFeedback('error', 'No se pudo eliminar el vehículo.')
+      error: () => this.showFeedback('error', 'No se pudo dar de baja el vehículo.')
     });
   }
 
-  goToPage(page: number): void {
+  goToPage(p: number): void {
     const m = this.meta();
-    if (!m || page < 1 || page > m.last_page) return;
-    this.reload(page);
+    if (!m || p < 1 || p > m.last_page) return;
+    this.reload(p);
   }
 
-  stateBadge(estado: VehicleStatus): { text: string; class: string } {
-    switch (estado) {
-      case 'activo': return { text: 'Activo', class: 'badge-green' };
-      case 'mantenimiento': return { text: 'Mantenimiento', class: 'badge-yellow' };
-      case 'inactivo': return { text: 'Inactivo', class: 'badge-gray' };
+  stateBadge(estatus: VehicleStatus): { text: string; cls: string } {
+    switch (estatus) {
+      case 'activo':    return { text: 'Activo',     cls: 'badge-green'  };
+      case 'en_taller': return { text: 'En taller',  cls: 'badge-yellow' };
+      case 'baja':      return { text: 'Baja',       cls: 'badge-gray'   };
     }
-  }
-
-  serviceBadge(v: Vehicle): { text: string; class: string } {
-    if (v.dias_para_servicio === null) {
-      return { text: 'Sin fecha', class: 'badge-gray' };
-    }
-    if (v.dias_para_servicio < 0) {
-      return { text: `Vencido ${Math.abs(v.dias_para_servicio)}d`, class: 'badge-red' };
-    }
-    if (v.dias_para_servicio <= 7) {
-      return { text: `${v.dias_para_servicio}d`, class: 'badge-yellow' };
-    }
-    return { text: `${v.dias_para_servicio}d`, class: 'badge-green' };
   }
 
   private showFeedback(type: 'success' | 'error', text: string): void {

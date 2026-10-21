@@ -4,55 +4,60 @@
       <div>
         <h3>Cambiar estatus</h3>
         <p class="muted small">
-          Orden <strong>{{ order.folio }}</strong> · Estado actual:
-          <strong>{{ statusLabel(order.status) }}</strong>
+          Orden <strong>{{ order.folio }}</strong> · Actual: <strong>{{ statusLabel(order.estatus) }}</strong>
         </p>
       </div>
-      <button class="icon-close" (click)="cancel()" aria-label="Cerrar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
+      <button class="icon-close" (click)="cancel()" aria-label="Cerrar">✕</button>
     </header>
 
-    <div class="error-banner" *ngIf="errorMessage() as e">{{ e }}</div>
+    @if (errorMessage(); as e) {
+      <div class="error-banner">{{ e }}</div>
+    }
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="field">
         <label>Nuevo estatus *</label>
         <div class="options">
-          <label class="option"
-                 *ngFor="let t of order.transiciones_disponibles"
-                 [class.selected]="form.controls.status.value === t">
-            <input type="radio" formControlName="status" [value]="t">
-            <span class="option-label">{{ statusLabel(t) }}</span>
-          </label>
+          @for (t of availableTransitions; track t) {
+            <label class="option" [class.selected]="form.controls.estatus.value === t">
+              <input type="radio" formControlName="estatus" [value]="t">
+              <span class="option-label">{{ statusLabel(t) }}</span>
+            </label>
+          }
         </div>
+        @if (availableTransitions.length === 0) {
+          <small class="err">No hay transiciones disponibles para este estado.</small>
+        }
       </div>
 
-      <div class="field" *ngIf="isComplete()">
-        <label for="costo_real">Costo real (MXN)</label>
-        <input id="costo_real" type="number" min="0" step="0.01"
-               formControlName="costo_real" placeholder="0.00">
-        <small class="hint">Opcional. Se guardará al cerrar la orden.</small>
-      </div>
+      @if (isComplete()) {
+        <div class="field">
+          <label for="costo">Costo final (MXN) *</label>
+          <input id="costo" type="number" min="0" step="0.01" formControlName="costo">
+          @if (form.controls.costo.touched && form.controls.costo.invalid) {
+            <small class="err">Requerido y ≥ 0.</small>
+          }
+        </div>
+
+        <div class="field">
+          <label for="fecha_cierre">Fecha de cierre *</label>
+          <input id="fecha_cierre" type="date" formControlName="fecha_cierre">
+          @if (form.controls.fecha_cierre.touched && form.controls.fecha_cierre.invalid) {
+            <small class="err">Requerida.</small>
+          }
+        </div>
+      }
 
       <div class="field">
         <label for="notas">Notas (opcional)</label>
         <textarea id="notas" rows="3" formControlName="notas"
-                  placeholder="Agrega un comentario al cambio de estatus…"></textarea>
-        <small class="hint">
-          El cambio se registrará con la fecha y el nuevo estatus al inicio de la nota.
-        </small>
+                  placeholder="Comentario del cambio…"></textarea>
       </div>
 
       <footer class="modal-actions">
-        <button type="button" class="btn-ghost" (click)="cancel()" [disabled]="submitting()">
-          Cancelar
-        </button>
-        <button type="submit" class="btn-primary" [disabled]="submitting() || !form.controls.status.value">
+        <button type="button" class="btn-ghost" (click)="cancel()" [disabled]="submitting()">Cancelar</button>
+        <button type="submit" class="btn-primary"
+                [disabled]="submitting() || !form.controls.estatus.value || availableTransitions.length === 0">
           {{ submitting() ? 'Guardando…' : 'Confirmar cambio' }}
         </button>
       </footer>

@@ -4,18 +4,11 @@
       <div>
         <div class="folio-row">
           <code class="folio">{{ order.folio }}</code>
-          <span class="badge" [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
-          <span class="badge" [class]="priorityClass(order.prioridad)">{{ priorityLabel(order.prioridad) }}</span>
+          <span class="badge" [class]="statusClass(order.estatus)">{{ statusLabel(order.estatus) }}</span>
         </div>
         <h3>{{ order.descripcion }}</h3>
       </div>
-      <button class="icon-close" (click)="close()" aria-label="Cerrar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
+      <button class="icon-close" (click)="close()" aria-label="Cerrar">✕</button>
     </header>
 
     <div class="sections">
@@ -23,60 +16,38 @@
         <h4>Vehículo</h4>
         <div class="kv-grid">
           <div class="kv"><span>Placa</span><strong>{{ order.vehiculo?.placa ?? '—' }}</strong></div>
-          <div class="kv"><span>Marca</span><strong>{{ order.vehiculo?.marca ?? '—' }}</strong></div>
-          <div class="kv"><span>Modelo</span><strong>{{ order.vehiculo?.modelo ?? '—' }}</strong></div>
+          <div class="kv"><span>N° económico</span><strong>{{ order.vehiculo?.numero_economico ?? '—' }}</strong></div>
+          <div class="kv"><span>Marca / Modelo</span>
+            <strong>{{ order.vehiculo?.marca }} {{ order.vehiculo?.modelo }}</strong>
+          </div>
           <div class="kv"><span>Año</span><strong>{{ order.vehiculo?.anio ?? '—' }}</strong></div>
         </div>
       </section>
 
       <section class="block">
-        <h4>Programación</h4>
+        <h4>Mantenimiento</h4>
         <div class="kv-grid">
-          <div class="kv"><span>Tipo</span><strong>{{ order.tipo | titlecase }}</strong></div>
+          <div class="kv"><span>Tipo</span><strong>{{ typeLabel(order.tipo) }}</strong></div>
+          <div class="kv"><span>Odómetro ingreso</span>
+            <strong>{{ order.odometro_ingreso | number }} km</strong>
+          </div>
           <div class="kv"><span>Fecha programada</span>
-            <strong>{{ order.fecha_programada ? (order.fecha_programada | date:'dd/MM/yyyy') : '—' }}</strong>
+            <strong>{{ order.fecha_programada | date:'dd/MM/yyyy' }}</strong>
           </div>
-          <div class="kv"><span>Inicio</span>
-            <strong>{{ order.fecha_inicio ? (order.fecha_inicio | date:'dd/MM/yyyy HH:mm') : '—' }}</strong>
+          <div class="kv"><span>Fecha de cierre</span>
+            <strong>{{ order.fecha_cierre ? (order.fecha_cierre | date:'dd/MM/yyyy') : '—' }}</strong>
           </div>
-          <div class="kv"><span>Cierre</span>
-            <strong>{{ order.fecha_cierre ? (order.fecha_cierre | date:'dd/MM/yyyy HH:mm') : '—' }}</strong>
-          </div>
+          <div class="kv"><span>Costo</span><strong>{{ money(order.costo) }}</strong></div>
+          <div class="kv"><span>Creado por</span><strong>{{ order.creado_por?.nombre ?? '—' }}</strong></div>
         </div>
       </section>
 
-      <section class="block">
-        <h4>Costos y kilometraje</h4>
-        <div class="kv-grid">
-          <div class="kv"><span>Costo estimado</span><strong>{{ money(order.costo_estimado) }}</strong></div>
-          <div class="kv"><span>Costo real</span><strong>{{ money(order.costo_real) }}</strong></div>
-          <div class="kv"><span>Km de ingreso</span>
-            <strong>{{ order.kilometraje_ingreso !== null ? (order.kilometraje_ingreso | number) + ' km' : '—' }}</strong>
-          </div>
-        </div>
-      </section>
-
-      <section class="block">
-        <h4>Responsables</h4>
-        <div class="kv-grid">
-          <div class="kv"><span>Creado por</span>
-            <strong>{{ order.creado_por?.nombre ?? '—' }}</strong>
-          </div>
-          <div class="kv"><span>Asignado a</span>
-            <strong>{{ order.asignado_a ? (order.asignado_a.nombre + ' ' + (order.asignado_a.apellido ?? '')) : 'Sin asignar' }}</strong>
-          </div>
-        </div>
-      </section>
-
-      <section class="block full">
-        <h4>Descripción</h4>
-        <p class="text">{{ order.descripcion }}</p>
-      </section>
-
-      <section class="block full" *ngIf="order.notas">
-        <h4>Notas / historial</h4>
-        <pre class="notas">{{ order.notas }}</pre>
-      </section>
+      @if (order.notas) {
+        <section class="block full">
+          <h4>Notas / historial</h4>
+          <pre class="notas">{{ order.notas }}</pre>
+        </section>
+      }
     </div>
 
     <footer class="modal-actions">

@@ -1,40 +1,23 @@
 import { OrderType } from './order';
 
-export type ReportDateField =
-  | 'created_at'
-  | 'fecha_cierre'
-  | 'fecha_inicio'
-  | 'fecha_programada';
-
-export interface CostTotals {
-  ordenes: number;
-  costo_estimado: number;
-  costo_real: number;
-}
+export type ReportDateField = 'created_at' | 'fecha_cierre' | 'fecha_programada';
 
 export interface CostByType {
   tipo: OrderType;
   ordenes: number;
-  costo_estimado: number;
-  costo_real: number;
-}
-
-export interface CostByTypeBreakdown {
-  ordenes: number;
-  costo_estimado: number;
-  costo_real: number;
+  costo: number;
 }
 
 export interface CostByVehicle {
   vehiculo_id: number;
   placa: string;
+  numero_economico: string;
   marca: string;
   modelo: string;
   anio: number;
   ordenes: number;
-  costo_estimado: number;
-  costo_real: number;
-  por_tipo: Partial<Record<OrderType, CostByTypeBreakdown>>;
+  costo: number;
+  por_tipo: Partial<Record<OrderType, { ordenes: number; costo: number }>>;
 }
 
 export interface CostsReportResponse {
@@ -49,7 +32,7 @@ export interface CostsReportResponse {
       status: string | null;
       include_cancelled: boolean;
     };
-    totals: CostTotals;
+    totals: { ordenes: number; costo: number };
     por_tipo: CostByType[];
     por_vehiculo: CostByVehicle[];
   };
@@ -59,7 +42,7 @@ export interface CostsReportFilters {
   from?: string;
   to?: string;
   vehiculo_id?: number;
-  status?: 'pendiente' | 'en_progreso' | 'completada' | 'cancelada';
+  status?: 'abierta' | 'en_proceso' | 'cerrada' | 'cancelada';
   include_cancelled?: boolean;
   date_field?: ReportDateField;
 }

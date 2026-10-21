@@ -9,8 +9,12 @@ import { LoginPayload, LoginResponse, MeResponse, User } from '../models/auth';
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
 
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  readonly role         = computed(() => this._user()?.rol ?? null);
+  readonly isAdmin      = computed(() => this._user()?.rol === 'administrador');
+  readonly isCapturista = computed(() => this._user()?.rol === 'capturista');
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
 

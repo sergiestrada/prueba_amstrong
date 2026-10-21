@@ -2,13 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
-import {
-  Order,
-  OrderFilters,
-  OrderPriority,
-  OrderStatus,
-  OrderType
-} from '../../../core/models/order';
+import { Order, OrderFilters, OrderStatus, OrderType } from '../../../core/models/order';
+import { AuthService } from '../../../core/services/auth';
 import { OrdersService } from '../../../core/services/orders.service';
 import { OrderFormModalComponent } from '../orders-form-modal/orders-form-modal';
 import { OrderStatusModalComponent } from '../orders-status-modal/orders-status-modal';
@@ -18,22 +13,21 @@ import { OrderDetailModalComponent } from '../orders-detail-modal/orders-detail-
   selector: 'app-orders-list',
   standalone: true,
   imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    OrderFormModalComponent,
-    OrderStatusModalComponent,
-    OrderDetailModalComponent
+    CommonModule, ReactiveFormsModule,
+    OrderFormModalComponent, OrderStatusModalComponent, OrderDetailModalComponent
   ],
-  templateUrl: './orders-list.html',
-  styleUrl: './orders-list.css'
+  templateUrl: './orders-list.html',            // ← sin .component
+  styleUrl: './orders-list.css'                 // ← sin .component
 })
 export class OrdersListComponent implements OnInit {
   private readonly ordersService = inject(OrdersService);
-  private readonly fb = inject(FormBuilder);
+  private readonly authService   = inject(AuthService);
+  private readonly fb            = inject(FormBuilder);
 
   readonly items   = this.ordersService.items;
   readonly meta    = this.ordersService.meta;
   readonly loading = this.ordersService.loading;
+  readonly isAdmin = this.authService.isAdmin;
 
   readonly formOpen    = signal(false);
   readonly editing     = signal<Order | null>(null);
@@ -44,128 +38,99 @@ export class OrdersListComponent implements OnInit {
   readonly feedback    = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
   readonly filters = this.fb.nonNullable.group({
-    search:    [''],
-    status:    [''],
-    prioridad: [''],
-    tipo:      ['']
+    search:  [''],
+    estatus: [''],
+    tipo:    ['']
   });
 
   readonly pages = computed(() => {
     const m = this.meta();
     if (!m) return [] as number[];
-    const start = Math.max(1, m.current_page - 2);
-    const end   = Math.min(m.last_page, m.current_page + 2);
+    const s = Math.max(1, m.current_page - 2);
+    const e = Math.min(m.last_page, m.current_page + 2);
     const arr: number[] = [];
-    for (let i = start; i <= end; i++) arr.push(i);
+    for (let i = s; i <= e; i++) arr.push(i);
     return arr;
   });
 
   ngOnInit(): void {
     this.reload();
-
     this.filters.controls.search
       .valueChanges.pipe(debounceTime(300), distinctUntilChanged())
       .subscribe(() => this.reload());
-
-    this.filters.controls.status.valueChanges.subscribe(() => this.reload());
-    this.filters.controls.prioridad.valueChanges.subscribe(() => this.reload());
+    this.filters.controls.estatus.valueChanges.subscribe(() => this.reload());
     this.filters.controls.tipo.valueChanges.subscribe(() => this.reload());
   }
 
   reload(page = 1): void {
     const v = this.filters.getRawValue();
-    const filters: OrderFilters = {
-      page,
-      per_page: 15,
-      sort_by: 'created_at',
-      sort_dir: 'desc'
-    };
-    if (v.search)    filters.search    = v.search;
-    if (v.status)    filters.status    = v.status as OrderStatus;
-    if (v.prioridad) filters.prioridad = v.prioridad as OrderPriority;
-    if (v.tipo)      filters.tipo      = v.tipo as OrderType;
-
+    const filters: OrderFilters = { page, per_page: 15, sort_by: 'created_at', sort_dir: 'desc' };
+    if (v.search)  filters.search  = v.search;
+    if (v.estatus) filters.estatus = v.estatus as OrderStatus;
+    if (v.tipo)    filters.tipo    = v.tipo as OrderType;
     this.ordersService.list(filters).subscribe({
       error: () => this.showFeedback('error', 'No se pudieron cargar las órdenes.')
     });
   }
 
-  // ---- Modales ----
-
   openCreate(): void { this.editing.set(null); this.formOpen.set(true); }
-
-  openEdit(order: Order): void {
-    if (this.isClosed(order)) return;
-    this.editing.set(order);
-    this.formOpen.set(true);
+  openEdit(o: Order): void {
+    if (this.isClosed(o)) return;
+    this.editing.set(o); this.formOpen.set(true);
   }
-
-  openStatus(order: Order): void {
-    if (order.transiciones_disponibles.length === 0) return;
-    this.statusOrder.set(order);
-    this.statusOpen.set(true);
+  openStatus(o: Order): void {
+    if (!this.hasAvailableTransitions(o)) return;
+    this.statusOrder.set(o); this.statusOpen.set(true);
   }
+  openDetail(o: Order): void { this.detailOrder.set(o); this.detailOpen.set(true); }
 
-  openDetail(order: Order): void {
-    this.detailOrder.set(order);
-    this.detailOpen.set(true);
-  }
-
-  closeForm(): void    { this.formOpen.set(false);   this.editing.set(null); }
-  closeStatus(): void  { this.statusOpen.set(false); this.statusOrder.set(null); }
-  closeDetail(): void  { this.detailOpen.set(false); this.detailOrder.set(null); }
+  closeForm(): void   { this.formOpen.set(false);   this.editing.set(null); }
+  closeStatus(): void { this.statusOpen.set(false); this.statusOrder.set(null); }
+  closeDetail(): void { this.detailOpen.set(false); this.detailOrder.set(null); }
 
   onSaved(_: Order, isEdit: boolean): void {
-    this.closeForm();
-    this.reload();
+    this.closeForm(); this.reload();
     this.showFeedback('success', isEdit ? 'Orden actualizada.' : 'Orden creada.');
   }
 
   onStatusChanged(_: Order): void {
-    this.closeStatus();
-    this.reload();
+    this.closeStatus(); this.reload();
     this.showFeedback('success', 'Estatus actualizado.');
   }
 
-  // ---- Helpers de vista ----
-
-  goToPage(page: number): void {
+  goToPage(p: number): void {
     const m = this.meta();
-    if (!m || page < 1 || page > m.last_page) return;
-    this.reload(page);
+    if (!m || p < 1 || p > m.last_page) return;
+    this.reload(p);
   }
 
-  isClosed(order: Order): boolean {
-    return order.status === 'completada' || order.status === 'cancelada';
+  isClosed(o: Order): boolean {
+    return o.estatus === 'cerrada' || o.estatus === 'cancelada';
   }
 
-  statusBadge(status: OrderStatus): { text: string; cls: string } {
-    switch (status) {
-      case 'pendiente':   return { text: 'Pendiente',    cls: 'badge-pending'  };
-      case 'en_progreso': return { text: 'En progreso',  cls: 'badge-progress' };
-      case 'completada':  return { text: 'Completada',   cls: 'badge-done'     };
-      case 'cancelada':   return { text: 'Cancelada',    cls: 'badge-cancel'   };
-    }
+  /** Filtra cancelar si el usuario no es admin. */
+  hasAvailableTransitions(o: Order): boolean {
+    if (o.transiciones_disponibles.length === 0) return false;
+    if (this.isAdmin()) return true;
+    return o.transiciones_disponibles.some(s => s !== 'cancelada');
   }
 
-  priorityBadge(p: OrderPriority): { text: string; cls: string } {
-    switch (p) {
-      case 'baja':    return { text: 'Baja',    cls: 'pri-baja'    };
-      case 'media':   return { text: 'Media',   cls: 'pri-media'   };
-      case 'alta':    return { text: 'Alta',    cls: 'pri-alta'    };
-      case 'critica': return { text: 'Crítica', cls: 'pri-critica' };
+  statusBadge(estatus: OrderStatus): { text: string; cls: string } {
+    switch (estatus) {
+      case 'abierta':    return { text: 'Abierta',    cls: 'badge-pending'  };
+      case 'en_proceso': return { text: 'En proceso', cls: 'badge-progress' };
+      case 'cerrada':    return { text: 'Cerrada',    cls: 'badge-done'     };
+      case 'cancelada':  return { text: 'Cancelada',  cls: 'badge-cancel'   };
     }
   }
 
   typeLabel(t: OrderType): string {
-    return t === 'preventivo' ? 'Preventivo'
-      : t === 'correctivo'    ? 'Correctivo'
-      : 'Emergencia';
+    return t === 'preventivo' ? 'Preventivo' : 'Correctivo';
   }
 
-  formatMoney(value: string | null): string {
-    if (value === null || value === '') return '—';
-    const n = Number(value);
+  money(v: string | null): string {
+    if (v === null) return '—';
+    const n = Number(v);
     return isNaN(n) ? '—' : '$' + n.toFixed(2);
   }
 

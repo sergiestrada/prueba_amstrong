@@ -3,110 +3,74 @@
     <header class="modal-header">
       <div>
         <h3>{{ isEdit() ? 'Editar vehículo' : 'Registrar vehículo' }}</h3>
-        <p class="muted small">
-          {{ isEdit() ? 'Actualiza los datos del vehículo.' : 'Completa los datos del nuevo vehículo.' }}
-        </p>
+        <p class="muted small">Completa los datos obligatorios.</p>
       </div>
-      <button class="icon-close" (click)="cancel()" aria-label="Cerrar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
+      <button class="icon-close" (click)="cancel()" aria-label="Cerrar">✕</button>
     </header>
 
-    <div class="error-banner" *ngIf="errorMessage() as e">{{ e }}</div>
+    @if (errorMessage(); as e) {
+      <div class="error-banner">{{ e }}</div>
+    }
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="grid">
         <div class="field">
           <label for="placa">Placa *</label>
           <input id="placa" formControlName="placa" placeholder="ABC-123" maxlength="20">
-          <small class="err" *ngIf="placa.touched && placa.hasError('required')">Requerida.</small>
-          <small class="err" *ngIf="placa.touched && placa.hasError('maxlength')">Máximo 20 caracteres.</small>
+          @if (placa.touched && placa.invalid) { <small class="err">Requerida (máx. 20).</small> }
+        </div>
+
+        <div class="field">
+          <label for="numero_economico">N° económico *</label>
+          <input id="numero_economico" formControlName="numero_economico" placeholder="ECO-001" maxlength="30">
+          @if (numero_economico.touched && numero_economico.invalid) {
+            <small class="err">Requerido (máx. 30).</small>
+          }
         </div>
 
         <div class="field">
           <label for="marca">Marca *</label>
           <input id="marca" formControlName="marca" placeholder="Toyota">
-          <small class="err" *ngIf="marca.touched && marca.hasError('required')">Requerida.</small>
+          @if (marca.touched && marca.invalid) { <small class="err">Requerida.</small> }
         </div>
 
         <div class="field">
           <label for="modelo">Modelo *</label>
           <input id="modelo" formControlName="modelo" placeholder="Hilux">
-          <small class="err" *ngIf="modelo.touched && modelo.hasError('required')">Requerido.</small>
+          @if (modelo.touched && modelo.invalid) { <small class="err">Requerido.</small> }
         </div>
 
         <div class="field">
           <label for="anio">Año *</label>
-          <input id="anio" type="number" formControlName="anio" min="1900" [max]="2027">
-          <small class="err" *ngIf="anio.touched && anio.invalid">Año entre 1900 y próximo año.</small>
+          <input id="anio" type="number" formControlName="anio" min="1900" [max]="maxYear">
+          @if (anio.touched && anio.invalid) { <small class="err">Año inválido.</small> }
         </div>
 
         <div class="field">
-          <label for="tipo">Tipo *</label>
-          <select id="tipo" formControlName="tipo">
-            <option value="sedan">Sedán</option>
-            <option value="suv">SUV</option>
-            <option value="pickup">Pick-up</option>
-            <option value="camion">Camión</option>
-            <option value="moto">Moto</option>
-            <option value="otro">Otro</option>
-          </select>
+          <label for="odometro_actual">Odómetro actual (km) *</label>
+          <input id="odometro_actual" type="number" formControlName="odometro_actual" min="0">
+          @if (odometro_actual.touched && odometro_actual.invalid) {
+            <small class="err">Valor mayor o igual a 0.</small>
+          }
         </div>
 
         <div class="field">
-          <label for="color">Color</label>
-          <input id="color" formControlName="color" placeholder="Blanco">
-        </div>
-
-        <div class="field">
-          <label for="vin">VIN</label>
-          <input id="vin" formControlName="vin" placeholder="17 caracteres" maxlength="17">
-          <small class="err" *ngIf="vin.touched && vin.hasError('maxlength')">Máximo 17 caracteres.</small>
-        </div>
-
-        <div class="field">
-          <label for="kilometraje">Kilometraje (km) *</label>
-          <input id="kilometraje" type="number" formControlName="kilometraje" min="0">
-          <small class="err" *ngIf="kilometraje.touched && kilometraje.invalid">Valor mayor o igual a 0.</small>
-        </div>
-
-        <div class="field">
-          <label for="fecha_ultimo_servicio">Último servicio</label>
-          <input id="fecha_ultimo_servicio" type="date" formControlName="fecha_ultimo_servicio">
-        </div>
-
-        <div class="field">
-          <label for="fecha_proximo_servicio">Próximo servicio</label>
-          <input id="fecha_proximo_servicio" type="date" formControlName="fecha_proximo_servicio">
-          <small class="err" *ngIf="form.hasError('datesOrder') && form.get('fecha_proximo_servicio')?.touched">
-            Debe ser posterior al último servicio.
-          </small>
-        </div>
-
-        <div class="field">
-          <label for="estado">Estado *</label>
-          <select id="estado" formControlName="estado">
+          <label for="estatus">Estatus *</label>
+          <select id="estatus" formControlName="estatus">
             <option value="activo">Activo</option>
-            <option value="mantenimiento">Mantenimiento</option>
-            <option value="inactivo">Inactivo</option>
+            <option value="en_taller">En taller</option>
+            <option value="baja">Baja</option>
           </select>
         </div>
 
-        <div class="field checkbox">
-          <label>
-            <input type="checkbox" formControlName="activo">
-            <span>Vehículo activo</span>
-          </label>
+        <div class="field">
+          <label for="fecha_alta">Fecha de alta</label>
+          <input id="fecha_alta" type="date" formControlName="fecha_alta">
         </div>
 
         <div class="field full">
           <label for="notas">Notas</label>
-          <textarea id="notas" rows="3" formControlName="notas" placeholder="Observaciones opcionales…"></textarea>
-          <small class="err" *ngIf="notas.touched && notas.hasError('maxlength')">Máximo 2000 caracteres.</small>
+          <textarea id="notas" rows="3" formControlName="notas"></textarea>
         </div>
       </div>
 

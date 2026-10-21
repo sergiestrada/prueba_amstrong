@@ -1,11 +1,10 @@
 import { CommonModule } from '@angular/common';
-import {
-  Component, EventEmitter, HostListener, Input,
-  OnInit, Output, inject, signal
-} from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Order, OrderStatus } from '../../../core/models/order';
+import { AuthService } from '../../../core/services/auth';
 import { OrdersService } from '../../../core/services/orders.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-order-status-modal',
@@ -15,8 +14,9 @@ import { OrdersService } from '../../../core/services/orders.service';
   styleUrl: './orders-status-modal.css'
 })
 export class OrderStatusModalComponent implements OnInit {
-  private readonly fb = inject(FormBuilder);
+  private readonly fb            = inject(FormBuilder);
   private readonly ordersService = inject(OrdersService);
+  private readonly authService   = inject(AuthService);
 
   @Input({ required: true }) order!: Order;
   @Output() changed = new EventEmitter<Order>();
@@ -26,73 +26,74 @@ export class OrderStatusModalComponent implements OnInit {
   readonly errorMessage = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
-    status:     ['' as OrderStatus | '', [Validators.required]],
-    notas:      [''],
-    costo_real: [null as number | null]
+    estatus:      ['' as OrderStatus | '', [Validators.required]],
+    costo:        [null as number | null],
+    fecha_cierre: [''],
+    notas:        ['']
   });
 
-  ngOnInit(): void {
-    // Si solo hay una transición válida, la seleccionamos por defecto.
+  /** Solo admin puede ver "cancelada". */
+  get availableTransitions(): OrderStatus[] {
     const t = this.order.transiciones_disponibles;
-    if (t.length === 1) {
-      this.form.controls.status.setValue(t[0]);
+    return this.authService.isAdmin() ? t : t.filter(s => s !== 'cancelada');
+  }
+
+  ngOnInit(): void {
+    if (this.availableTransitions.length === 1) {
+      this.form.controls.estatus.setValue(this.availableTransitions[0]);
     }
-    // costo_real solo es relevante al completar
-    this.form.controls.status.valueChanges.subscribe((v) => {
-      if (v !== 'completada') this.form.controls.costo_real.setValue(null);
+
+    this.form.controls.estatus.valueChanges.subscribe((v) => {
+      const costo = this.form.controls.costo;
+      const fecha = this.form.controls.fecha_cierre;
+      if (v === 'cerrada') {
+        costo.setValidators([Validators.required, Validators.min(0)]);
+        fecha.setValidators([Validators.required]);
+      } else {
+        costo.clearValidators();
+        fecha.clearValidators();
+      }
+      costo.updateValueAndValidity();
+      fecha.updateValueAndValidity();
     });
   }
 
   @HostListener('document:keydown.escape')
-  onEscape(): void {
-    if (!this.submitting()) this.closed.emit();
-  }
+  onEscape(): void { if (!this.submitting()) this.closed.emit(); }
 
   submit(): void {
     this.errorMessage.set(null);
-
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const raw = this.form.getRawValue();
-    if (!raw.status) return;
+    if (!raw.estatus) return;
 
     this.submitting.set(true);
-
-    this.ordersService.changeStatus(this.order.id, {
-      status:     raw.status as OrderStatus,
-      notas:      raw.notas ? raw.notas.trim() : null,
-      costo_real: raw.status === 'completada' && raw.costo_real !== null
-        ? Number(raw.costo_real) : null
-    }).subscribe({
-      next: (res) => {
-        this.submitting.set(false);
-        this.changed.emit(res.data);
-      },
-      error: (err) => {
-        this.submitting.set(false);
-        this.errorMessage.set(this.extractError(err));
-      }
-    });
+   this.ordersService.changeStatus(this.order.id, {
+  estatus:      raw.estatus as OrderStatus,
+  costo:        raw.estatus === 'cerrada' && raw.costo !== null ? Number(raw.costo) : null,
+  fecha_cierre: raw.estatus === 'cerrada' ? (raw.fecha_cierre || null) : null,
+  notas:        raw.notas ? raw.notas.trim() : null
+}).subscribe({
+  next:  (res: { data: Order }) => {
+    this.submitting.set(false);
+    this.changed.emit(res.data);
+  },
+  error: (err: HttpErrorResponse) => {
+    this.submitting.set(false);
+    this.errorMessage.set(this.extractError(err));
+  }
+});
   }
 
-  cancel(): void {
-    if (!this.submitting()) this.closed.emit();
-  }
+  cancel(): void { if (!this.submitting()) this.closed.emit(); }
 
-  isComplete(): boolean {
-    return this.form.controls.status.value === 'completada';
-  }
+  isComplete(): boolean { return this.form.controls.estatus.value === 'cerrada'; }
 
   statusLabel(s: OrderStatus): string {
-    switch (s) {
-      case 'pendiente':   return 'Pendiente';
-      case 'en_progreso': return 'En progreso';
-      case 'completada':  return 'Completada';
-      case 'cancelada':   return 'Cancelada';
-    }
+    return s === 'abierta' ? 'Abierta'
+      : s === 'en_proceso' ? 'En proceso'
+      : s === 'cerrada' ? 'Cerrada'
+      : 'Cancelada';
   }
 
   private extractError(err: any): string {

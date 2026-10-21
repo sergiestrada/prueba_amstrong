@@ -1,41 +1,41 @@
 export type VehicleType = 'sedan' | 'suv' | 'pickup' | 'camion' | 'moto' | 'otro';
-export type VehicleStatus = 'activo' | 'mantenimiento' | 'inactivo';
+export type VehicleStatus = 'activo' | 'en_taller' | 'baja';
 
 export interface Vehicle {
   id: number;
   placa: string;
+  numero_economico: string;
   marca: string;
   modelo: string;
   anio: number;
-  color: string | null;
-  vin: string | null;
-  tipo: VehicleType;
-  kilometraje: number;
-  fecha_ultimo_servicio: string | null;
-  fecha_proximo_servicio: string | null;
-  dias_para_servicio: number | null;
-  estado: VehicleStatus;
-  activo: boolean;
+  odometro_actual: number;
+  estatus: VehicleStatus;
+  fecha_alta: string | null;
   notas: string | null;
+  requiere_servicio: boolean;
   created_at: string;
   updated_at: string;
-  deleted_at: string | null;
 }
 
 export interface VehiclePayload {
   placa: string;
+  numero_economico: string;
   marca: string;
   modelo: string;
   anio: number;
-  color?: string | null;
-  vin?: string | null;
-  tipo: VehicleType;
-  kilometraje: number;
-  fecha_ultimo_servicio?: string | null;
-  fecha_proximo_servicio?: string | null;
-  estado: VehicleStatus;
-  activo?: boolean;
+  odometro_actual: number;
+  estatus: VehicleStatus;
+  fecha_alta?: string | null;
   notas?: string | null;
+}
+
+export interface VehicleFilters {
+  search?: string;
+  estatus?: VehicleStatus;
+  sort_by?: string;
+  sort_dir?: 'asc' | 'desc';
+  per_page?: number;
+  page?: number;
 }
 
 export interface PaginatedMeta {
@@ -52,18 +52,4 @@ export interface PaginatedResponse<T> {
   data: T[];
   links: { first: string; last: string; prev: string | null; next: string | null };
   meta: PaginatedMeta;
-}
-
-export interface VehicleFilters {
-  search?: string;
-  marca?: string;
-  modelo?: string;
-  tipo?: VehicleType;
-  estado?: VehicleStatus;
-  anio?: number;
-  activo?: boolean;
-  sort_by?: string;
-  sort_dir?: 'asc' | 'desc';
-  per_page?: number;
-  page?: number;
 }
