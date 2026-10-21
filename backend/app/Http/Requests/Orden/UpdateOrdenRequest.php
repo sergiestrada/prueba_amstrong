@@ -8,7 +8,7 @@ class UpdateOrdenRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // La autorización real se valida en OrdenController::update
+        return true;
     }
 
     public function rules(): array
@@ -20,7 +20,7 @@ class UpdateOrdenRequest extends FormRequest
             'odometro_ingreso' => ['sometimes', 'integer', 'min:0'],
             'fecha_programada' => ['sometimes', 'date'],
             'prioridad'        => ['sometimes', 'in:baja,media,alta'],
-            'costo_estimado'   => ['sometimes', 'numeric', 'min:0', 'max:99999999.99'],
+            'costo'            => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:99999999.99'], // ← nuevo
             'asignado_a_id'    => ['sometimes', 'nullable', 'integer', 'exists:usuarios,id'],
             'notas'            => ['sometimes', 'nullable', 'string', 'max:2000'],
         ];

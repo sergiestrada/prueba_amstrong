@@ -10,53 +10,61 @@ import { ReportsService } from '../../../core/services/reports.service';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './costs-report.html',
-  styleUrl: './costs-report.css'
+  styleUrl: './costs-report.css',
 })
 export class CostsReportComponent implements OnInit {
   private readonly reportsService = inject(ReportsService);
   private readonly fb = inject(FormBuilder);
 
   readonly loading = this.reportsService.loading;
-  readonly report  = this.reportsService.report;
+  readonly report = this.reportsService.report;
+  readonly error = this.reportsService.error;
 
-  readonly feedback = signal<{ type: 'success' | 'error'; text: string } | null>(null);
   readonly expanded = signal<Set<number>>(new Set());
 
   readonly filters = this.fb.nonNullable.group({
-    from:              [this.defaultFrom()],
-    to:                [this.defaultTo()],
-    status:            ['' as '' | OrderStatus],
+    from: [this.defaultFrom()],
+    to: [this.defaultTo()],
+    status: ['' as '' | OrderStatus],
     include_cancelled: [false],
-    date_field:        ['created_at' as ReportDateField]
+    date_field: ['created_at' as ReportDateField],
   });
 
-  readonly totals = computed(() => this.report()?.totals ?? null);
+  readonly totalOrdenes = computed(() => this.report()?.totals?.ordenes ?? 0);
+  readonly totalCosto = computed(() => this.report()?.totals?.costo ?? 0);
+  readonly hayDatos = computed(() => this.totalOrdenes() > 0);
+  readonly porTipo = computed(() => this.report()?.por_tipo ?? []);
+  readonly porVehiculo = computed(() => this.report()?.por_vehiculo ?? []);
 
   readonly maxCostByType = computed(() => {
-    const tipos = this.report()?.por_tipo ?? [];
-    return tipos.reduce((m, t) => Math.max(m, t.costo), 0) || 1;
+    const tipos = this.porTipo();
+    return tipos.reduce((m, t) => Math.max(m, t.costo ?? 0), 0) || 1;
   });
 
   readonly chartData = computed(() => {
-    const tipos = [...(this.report()?.por_tipo ?? [])];
-    tipos.sort((a, b) => b.costo - a.costo);
+    const tipos = [...this.porTipo()].sort((a, b) => b.costo - a.costo);
     const max = this.maxCostByType();
-    return tipos.map(t => ({ ...t, pct: Math.round((t.costo / max) * 100) }));
+    return tipos.map((t) => ({
+      ...t,
+      pct: Math.max(2, Math.round(((t.costo || 0) / max) * 100)),
+    }));
   });
 
-  ngOnInit(): void { this.reload(); }
+  ngOnInit(): void {
+    this.reload();
+  }
 
   reload(): void {
     const v = this.filters.getRawValue();
-    this.reportsService.getCosts({
-      from:              v.from || undefined,
-      to:                v.to || undefined,
-      status:            (v.status || undefined) as OrderStatus | undefined,
-      include_cancelled: v.include_cancelled,
-      date_field:        v.date_field
-    }).subscribe({
-      error: () => this.showFeedback('error', 'No se pudo generar el reporte.')
-    });
+    this.reportsService
+      .getCosts({
+        from: v.from || undefined,
+        to: v.to || undefined,
+        status: (v.status || undefined) as OrderStatus | undefined,
+        include_cancelled: !!v.include_cancelled,
+        date_field: v.date_field,
+      })
+      .subscribe();
   }
 
   resetDates(): void {
@@ -77,7 +85,9 @@ export class CostsReportComponent implements OnInit {
     });
   }
 
-  isExpanded(id: number): boolean { return this.expanded().has(id); }
+  isExpanded(id: number): boolean {
+    return this.expanded().has(id);
+  }
 
   typeLabel(t: OrderType): string {
     return t === 'preventivo' ? 'Preventivo' : 'Correctivo';
@@ -88,28 +98,20 @@ export class CostsReportComponent implements OnInit {
   }
 
   money(v: number | string | null | undefined): string {
-    if (v === null || v === undefined || v === '') return '$0.00';
-    const n = typeof v === 'number' ? v : Number(v);
-    return isNaN(n) ? '$0.00' : '$' + n.toLocaleString('es-MX', {
-      minimumFractionDigits: 2, maximumFractionDigits: 2
-    });
+    const n = Number(v ?? 0);
+    return isNaN(n)
+      ? '$0.00'
+      : '$' + n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   tipoEntries(v: CostByVehicle): { tipo: OrderType; data: { ordenes: number; costo: number } }[] {
-    return (Object.entries(v.por_tipo) as [OrderType, any][])
-      .map(([tipo, data]) => ({ tipo, data }));
-  }
-
-  trackByVehicle = (_: number, v: CostByVehicle) => v.vehiculo_id;
-
-  private showFeedback(type: 'success' | 'error', text: string): void {
-    this.feedback.set({ type, text });
-    setTimeout(() => this.feedback.set(null), 3200);
+    return (
+      Object.entries(v.por_tipo ?? {}) as [OrderType, { ordenes: number; costo: number }][]
+    ).map(([tipo, data]) => ({ tipo, data }));
   }
 
   private defaultFrom(): string {
-    const y = new Date().getFullYear();
-    return `${y}-01-01`;
+    return `${new Date().getFullYear()}-01-01`;
   }
 
   private defaultTo(): string {

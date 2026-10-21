@@ -22,13 +22,15 @@
 
   <form class="filters" [formGroup]="filters">
     <input type="search" formControlName="search" placeholder="Buscar por folio o descripción…">
-    <select formControlName="estatus">
+
+    <select formControlName="status"> <!-- ← status -->
       <option value="">Todos los estatus</option>
       <option value="abierta">Abierta</option>
       <option value="en_proceso">En proceso</option>
       <option value="cerrada">Cerrada</option>
       <option value="cancelada">Cancelada</option>
     </select>
+
     <select formControlName="tipo">
       <option value="">Todo tipo</option>
       <option value="preventivo">Preventivo</option>
@@ -71,8 +73,9 @@
                 <td>{{ o.odometro_ingreso | number }} km</td>
                 <td>{{ o.fecha_programada | date:'dd/MM/yyyy' }}</td>
                 <td>
-                  <span class="badge" [class]="statusBadge(o.estatus).cls">
-                    {{ statusBadge(o.estatus).text }}
+                  <!-- ↓ o.status, no o.estatus -->
+                  <span class="badge" [class]="statusBadge(o.status).cls">
+                    {{ statusBadge(o.status).text }}
                   </span>
                 </td>
                 <td>{{ money(o.costo) }}</td>

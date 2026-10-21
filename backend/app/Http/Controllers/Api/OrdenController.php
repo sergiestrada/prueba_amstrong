@@ -20,11 +20,12 @@ class OrdenController extends Controller
         'id', 'folio', 'prioridad', 'status', 'fecha_programada', 'created_at',
     ];
 
+ 
     private const RELATIONS = [
-        'vehiculo:id,placa,numero_economico,marca,modelo,anio',
-        'creadoPor:id,nombre,email',
-        'asignadoA:id,nombre,email',
-    ];
+    'vehiculo:id,placa,numero_economico,marca,modelo,anio',
+    'creadoPor:id,nombre,email',
+    'asignadoA:id,nombre,email',
+];
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -72,83 +73,63 @@ class OrdenController extends Controller
 
         return OrdenResource::collection($query->paginate($perPage));
     }
+public function store(StoreOrdenRequest $request): JsonResponse
+{
+    $usuario = $request->user();
 
-    public function store(StoreOrdenRequest $request): JsonResponse
-    {
-       // $this->authorize('create', Orden::class);
- $query = Orden::with(self::RELATIONS);
-        $usuario = $request->user();
-        if (! $usuario) {
-            return response()->json(
-                ['message' => 'No hay un usuario autenticado.'],
-                Response::HTTP_UNAUTHORIZED
-            );
-        }
+    if (! $usuario || ! $usuario->id) {
+        return response()->json(
+            ['message' => 'No hay un usuario autenticado.'],
+            Response::HTTP_UNAUTHORIZED
+        );
+    }
 
-        $data = $request->validated();
+    $data = $request->validated();
+
+    $orden = DB::transaction(function () use ($data, $usuario) {
         $data['creado_por_id'] = $usuario->id;
-        $data['status']        = Orden::STATUS_PENDIENTE;
+        $data['status']        = Orden::STATUS_ABIERTA;   // ← status
         $data['prioridad']     = $data['prioridad'] ?? 'media';
 
-        // El folio se genera en el hook creating() del modelo, dentro de la transacción.
-        $orden = DB::transaction(fn () => Orden::create($data));
+        return Orden::create($data);
+    }, 5);
 
-        $orden->load(self::RELATIONS);
+    $orden->load(self::RELATIONS);
 
-        return (new OrdenResource($orden))
-            ->response()
-            ->setStatusCode(Response::HTTP_CREATED);
+    return (new OrdenResource($orden))
+        ->response()
+        ->setStatusCode(Response::HTTP_CREATED);
+}
+
+public function updateStatus(UpdateOrdenStatusRequest $request, Orden $orden): OrdenResource
+{
+    $data  = $request->validated();
+    $nuevo = $data['status'];                              // ← status
+
+    $orden->status = $nuevo;
+
+    if ($nuevo === Orden::STATUS_EN_PROCESO && ! $orden->fecha_inicio) {
+        $orden->fecha_inicio = now();
+    }
+    if (in_array($nuevo, [Orden::STATUS_CERRADA, Orden::STATUS_CANCELADA], true)) {
+        $orden->fecha_cierre = now();
     }
 
-    public function show(Orden $orden): OrdenResource
-    {
-       // $this->authorize('view', $orden);
-
-        $orden->load(self::RELATIONS);
-        return new OrdenResource($orden);
+    if (array_key_exists('costo', $data) && $data['costo'] !== null) {
+        $orden->costo = $data['costo'];
     }
 
-    public function update(UpdateOrdenRequest $request, Orden $orden): OrdenResource
-    {
-     //   $this->authorize('update', $orden);
-
-        $orden->fill($request->validated())->save();
-        $orden->load(self::RELATIONS);
-
-        return new OrdenResource($orden);
+    if (! empty($data['notas'])) {
+        $prefijo   = '[' . now()->format('Y-m-d H:i') . ' · ' . $nuevo . '] ';
+        $nuevaNota = $prefijo . trim($data['notas']);
+        $orden->notas = $orden->notas
+            ? $orden->notas . "\n" . $nuevaNota
+            : $nuevaNota;
     }
 
-    public function updateStatus(UpdateOrdenStatusRequest $request, Orden $orden): OrdenResource
-    {
-      //  $this->authorize('changeStatus', $orden);
+    $orden->save();
+    $orden->load(self::RELATIONS);
 
-        $data      = $request->validated();
-        $newStatus = $data['status'];
-
-        $orden->status = $newStatus;
-
-        if ($newStatus === Orden::STATUS_EN_PROGRESO && ! $orden->fecha_inicio) {
-            $orden->fecha_inicio = now();
-        }
-        if (in_array($newStatus, [Orden::STATUS_COMPLETADA, Orden::STATUS_CANCELADA], true)) {
-            $orden->fecha_cierre = now();
-        }
-
-        if (array_key_exists('costo_real', $data) && $data['costo_real'] !== null) {
-            $orden->costo_real = $data['costo_real'];
-        }
-
-        if (! empty($data['notas'])) {
-            $prefijo   = '[' . now()->format('Y-m-d H:i') . ' · ' . $newStatus . '] ';
-            $nuevaNota = $prefijo . trim($data['notas']);
-            $orden->notas = $orden->notas
-                ? $orden->notas . "\n" . $nuevaNota
-                : $nuevaNota;
-        }
-
-        $orden->save();
-        $orden->load(self::RELATIONS);
-
-        return new OrdenResource($orden);
-    }
+    return new OrdenResource($orden);
+}
 }

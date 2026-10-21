@@ -6,12 +6,6 @@
     </div>
   </header>
 
-  @if (feedback(); as f) {
-    <div class="feedback" [class.success]="f.type === 'success'" [class.error]="f.type === 'error'">
-      {{ f.text }}
-    </div>
-  }
-
   <form class="filters" [formGroup]="filters" (ngSubmit)="reload()">
     <div class="filter-field">
       <label for="from">Desde</label>
@@ -49,127 +43,154 @@
       <button type="button" class="btn-ghost" (click)="clearDates()">Todo el histórico</button>
       <button type="button" class="btn-ghost" (click)="resetDates()">Año actual</button>
       <button type="submit" class="btn-primary" [disabled]="loading()">
-        Generar reporte
+        {{ loading() ? 'Generando…' : 'Generar reporte' }}
       </button>
     </div>
   </form>
 
   @if (loading()) {
-    <div class="loading-block"><div class="spinner"></div><p class="muted">Generando reporte…</p></div>
-  }
-
-  @if (!loading() && report(); as r) {
-    <div class="kpis">
-      <div class="kpi">
-        <div class="kpi-icon blue">📋</div>
-        <div>
-          <span class="kpi-label">Órdenes</span>
-          <strong class="kpi-value">{{ r.totals.ordenes | number }}</strong>
-        </div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-icon green">💲</div>
-        <div>
-          <span class="kpi-label">Costo total</span>
-          <strong class="kpi-value">{{ money(r.totals.costo) }}</strong>
-        </div>
-      </div>
+    <div class="loading-block">
+      <div class="spinner"></div>
+      <p class="muted">Generando reporte…</p>
     </div>
+  } @else if (error(); as err) {
+    <div class="feedback error" role="alert">
+      No se pudo generar el reporte: {{ err }}
+    </div>
+  } @else if (report(); as r) {
+    @if (!hayDatos()) {
+      <div class="empty-state">
+        <p>No hay órdenes en el periodo seleccionado.</p>
+        <p class="muted small">Ajusta las fechas o incluye canceladas.</p>
+      </div>
+    } @else {
+      <div class="kpis">
+        <div class="kpi">
+          <div class="kpi-icon blue">#</div>
+          <div>
+            <span class="kpi-label">Órdenes</span>
+            <strong class="kpi-value">{{ totalOrdenes() | number }}</strong>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-icon green">$</div>
+          <div>
+            <span class="kpi-label">Costo total</span>
+            <strong class="kpi-value">{{ money(totalCosto()) }}</strong>
+          </div>
+        </div>
+      </div>
 
-    @if (chartData().length > 0) {
-      <div class="card chart-card">
-        <header class="card-header">
-          <h2>Distribución por tipo</h2>
-        </header>
-        <div class="chart">
-          @for (row of chartData(); track row.tipo) {
-            <div class="chart-row">
-              <div class="chart-label">
-                <span class="badge" [class]="typeClass(row.tipo)">{{ typeLabel(row.tipo) }}</span>
-                <small class="muted">{{ row.ordenes }} orden{{ row.ordenes === 1 ? '' : 'es' }}</small>
-              </div>
-              <div class="chart-bars">
-                <div class="bar-row">
-                  <div class="bar-track">
-                    <div class="bar" [style.width.%]="row.pct"></div>
+      <div class="period-bar">
+        <span class="period-chip">Desde: <strong>{{ r.period.from ?? '—' }}</strong></span>
+        <span class="period-chip">Hasta: <strong>{{ r.period.to ?? '—' }}</strong></span>
+        <span class="period-chip">Campo: <strong>{{ r.period.date_field }}</strong></span>
+      </div>
+
+      @if (chartData().length > 0) {
+        <div class="card chart-card">
+          <header class="card-header">
+            <h2>Distribución por tipo</h2>
+          </header>
+          <div class="chart">
+            @for (row of chartData(); track row.tipo) {
+              <div class="chart-row">
+                <div class="chart-label">
+                  <span class="badge" [class]="typeClass(row.tipo)">{{ typeLabel(row.tipo) }}</span>
+                  <small class="muted">{{ row.ordenes }} orden{{ row.ordenes === 1 ? '' : 'es' }}</small>
+                </div>
+                <div class="chart-bars">
+                  <div class="bar-row">
+                    <div class="bar-track">
+                      <div class="bar" [style.width.%]="row.pct"></div>
+                    </div>
+                    <span class="bar-value">{{ money(row.costo) }}</span>
                   </div>
-                  <span class="bar-value">{{ money(row.costo) }}</span>
                 </div>
               </div>
-            </div>
-          }
+            }
+          </div>
+        </div>
+      }
+
+      <div class="card">
+        <header class="card-header">
+          <h2>Costos por vehículo</h2>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="expand-col"></th>
+                <th>Vehículo</th>
+                <th class="num">Órdenes</th>
+                <th class="num">Costo total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (porVehiculo().length === 0) {
+                <tr>
+                  <td colspan="4" class="center muted">
+                    Sin costos registrados en el periodo.
+                  </td>
+                </tr>
+              } @else {
+                @for (v of porVehiculo(); track v.vehiculo_id) {
+                  <tr class="vehicle-row"
+                      [class.expanded]="isExpanded(v.vehiculo_id)"
+                      (click)="toggleExpand(v.vehiculo_id)">
+                    <td class="expand-col">
+                      <span class="chevron" [class.open]="isExpanded(v.vehiculo_id)">›</span>
+                    </td>
+                    <td>
+                      <div class="vehicle-cell">
+                        <code class="placa">{{ v.placa }}</code>
+                        <div>
+                          <strong>{{ v.marca }} {{ v.modelo }}</strong>
+                          <div class="muted small">N° económico: {{ v.numero_economico }}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="num">{{ v.ordenes }}</td>
+                    <td class="num"><strong>{{ money(v.costo) }}</strong></td>
+                  </tr>
+                  @if (isExpanded(v.vehiculo_id)) {
+                    <tr class="detail-row">
+                      <td colspan="4">
+                        <div class="breakdown">
+                          <div class="breakdown-header">Desglose por tipo</div>
+                          <table class="inner-table">
+                            <thead>
+                              <tr>
+                                <th>Tipo</th>
+                                <th class="num">Órdenes</th>
+                                <th class="num">Costo</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (entry of tipoEntries(v); track entry.tipo) {
+                                <tr>
+                                  <td>
+                                    <span class="badge" [class]="typeClass(entry.tipo)">
+                                      {{ typeLabel(entry.tipo) }}
+                                    </span>
+                                  </td>
+                                  <td class="num">{{ entry.data.ordenes }}</td>
+                                  <td class="num"><strong>{{ money(entry.data.costo) }}</strong></td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              }
+            </tbody>
+          </table>
         </div>
       </div>
     }
-
-    <div class="card">
-      <header class="card-header">
-        <h2>Costos por vehículo</h2>
-      </header>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th class="expand-col"></th>
-              <th>Vehículo</th>
-              <th class="num">Órdenes</th>
-              <th class="num">Costo total</th>
-            </tr>
-          </thead>
-          <tbody>
-            @if (r.por_vehiculo.length === 0) {
-              <tr><td colspan="4" class="center muted">Sin costos registrados en el periodo.</td></tr>
-            } @else {
-              @for (v of r.por_vehiculo; track v.vehiculo_id) {
-                <tr class="vehicle-row" [class.expanded]="isExpanded(v.vehiculo_id)"
-                    (click)="toggleExpand(v.vehiculo_id)">
-                  <td class="expand-col">
-                    <span class="chevron" [class.open]="isExpanded(v.vehiculo_id)">›</span>
-                  </td>
-                  <td>
-                    <div class="vehicle-cell">
-                      <code class="placa">{{ v.placa }}</code>
-                      <div>
-                        <strong>{{ v.marca }} {{ v.modelo }}</strong>
-                        <div class="muted small">N° económico: {{ v.numero_economico }}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="num">{{ v.ordenes }}</td>
-                  <td class="num"><strong>{{ money(v.costo) }}</strong></td>
-                </tr>
-                @if (isExpanded(v.vehiculo_id)) {
-                  <tr class="detail-row">
-                    <td colspan="4">
-                      <div class="breakdown">
-                        <div class="breakdown-header">Desglose por tipo</div>
-                        <table class="inner-table">
-                          <thead>
-                            <tr>
-                              <th>Tipo</th>
-                              <th class="num">Órdenes</th>
-                              <th class="num">Costo</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            @for (entry of tipoEntries(v); track entry.tipo) {
-                              <tr>
-                                <td><span class="badge" [class]="typeClass(entry.tipo)">{{ typeLabel(entry.tipo) }}</span></td>
-                                <td class="num">{{ entry.data.ordenes }}</td>
-                                <td class="num"><strong>{{ money(entry.data.costo) }}</strong></td>
-                              </tr>
-                            }
-                          </tbody>
-                        </table>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              }
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
   }
 </section>

@@ -4,7 +4,8 @@
       <div>
         <div class="folio-row">
           <code class="folio">{{ order.folio }}</code>
-          <span class="badge" [class]="statusClass(order.estatus)">{{ statusLabel(order.estatus) }}</span>
+          <!-- ↓ order.status -->
+          <span class="badge" [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
         </div>
         <h3>{{ order.descripcion }}</h3>
       </div>

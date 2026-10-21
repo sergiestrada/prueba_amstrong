@@ -59,6 +59,17 @@
           }
         </div>
 
+        <!-- NUEVO: Costo -->
+        <div class="field">
+          <label for="costo">Costo (MXN)</label>
+          <input id="costo" type="number" min="0" step="0.01" formControlName="costo"
+                 placeholder="0.00">
+          @if (costo.touched && costo.invalid) {
+            <small class="err">Debe ser mayor o igual a 0.</small>
+          }
+          <small class="hint">Opcional. Puedes fijarlo después al cerrar la orden.</small>
+        </div>
+
         <div class="field full">
           <label for="descripcion">Descripción *</label>
           <textarea id="descripcion" rows="3" formControlName="descripcion"

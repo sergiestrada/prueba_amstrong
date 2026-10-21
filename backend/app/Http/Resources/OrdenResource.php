@@ -14,7 +14,7 @@ class OrdenResource extends JsonResource
             'id'                       => $this->id,
             'folio'                    => $this->folio,
             'tipo'                     => $this->tipo,
-            'status'                   => $this->status,
+            'status'                   => $this->status,               // ← status
             'prioridad'                => $this->prioridad,
             'transiciones_disponibles' => Orden::TRANSICIONES[$this->status] ?? [],
 

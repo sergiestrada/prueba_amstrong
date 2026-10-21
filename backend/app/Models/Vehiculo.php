@@ -21,8 +21,15 @@ class Vehiculo extends Model
     protected $table = 'vehiculos';
 
     protected $fillable = [
-        'placa', 'numero_economico', 'marca', 'modelo', 'anio',
-        'odometro_actual', 'estatus', 'fecha_alta', 'notas',
+        'placa',
+        'numero_economico',
+        'marca',
+        'modelo',
+        'anio',
+        'odometro_actual',
+        'estatus',
+        'fecha_alta',
+        'notas',
     ];
 
     protected $casts = [
@@ -41,19 +48,17 @@ class Vehiculo extends Model
     {
         return $this->ordenes()
             ->where('tipo', 'preventivo')
-            ->where('status', Orden::STATUS_COMPLETADA)
+            ->where('status', Orden::STATUS_CERRADA)          // ← status
             ->orderByDesc('fecha_cierre')
             ->first();
     }
 
-    /** RN-02: vehículo ya tiene orden abierta o en proceso. */
     public function tieneOrdenActiva(): bool
     {
         return $this->ordenes()
-            ->whereIn('status', [Orden::STATUS_PENDIENTE, Orden::STATUS_EN_PROGRESO])
+            ->whereIn('status', [Orden::STATUS_ABIERTA, Orden::STATUS_EN_PROCESO]) // ← status
             ->exists();
     }
-
     /** RN-07 / RF-05: requiere servicio preventivo. */
     public function requiereServicio(): bool
     {
@@ -69,6 +74,7 @@ class Vehiculo extends Model
     }
 
     /** Scope: vehículos que requieren servicio (para GET /vehicles/due-for-service). */
+      /** Scope: vehículos que requieren servicio (para GET /vehicles/due-for-service). */
     public function scopeDueForService(Builder $query): Builder
     {
         return $query->where('estatus', '!=', self::ESTATUS_BAJA)
@@ -79,7 +85,7 @@ class Vehiculo extends Model
                         ->from('ordenes as ult')
                         ->whereColumn('ult.vehiculo_id', 'vehiculos.id')
                         ->where('ult.tipo', 'preventivo')
-                        ->where('ult.status', Orden::STATUS_COMPLETADA)
+                        ->where('ult.status', Orden::STATUS_CERRADA)   // ← status
                         ->where(function ($inner) {
                             $inner->whereRaw(
                                 'vehiculos.odometro_actual - ult.odometro_ingreso > ?',
@@ -90,14 +96,14 @@ class Vehiculo extends Model
                             );
                         });
                 })
-                // Caso B: no tiene preventivo cerrado → usar fecha_alta y odo desde 0
+                // Caso B: sin preventivo cerrado → usar fecha_alta y odómetro desde 0
                 ->orWhere(function ($noHist) {
                     $noHist->whereNotExists(function ($sub) {
                         $sub->selectRaw('1')
                             ->from('ordenes')
                             ->whereColumn('ordenes.vehiculo_id', 'vehiculos.id')
                             ->where('ordenes.tipo', 'preventivo')
-                            ->where('ordenes.status', Orden::STATUS_COMPLETADA);
+                            ->where('ordenes.status', Orden::STATUS_CERRADA); // ← status
                     })
                     ->where(function ($fallback) {
                         $fallback->where('vehiculos.odometro_actual', '>', self::KM_LIMITE)

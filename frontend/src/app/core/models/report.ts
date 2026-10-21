@@ -1,6 +1,10 @@
 import { OrderType } from './order';
 
-export type ReportDateField = 'created_at' | 'fecha_cierre' | 'fecha_programada';
+export type ReportDateField =
+  | 'created_at'
+  | 'fecha_cierre'
+  | 'fecha_inicio'
+  | 'fecha_programada';
 
 export interface CostByType {
   tipo: OrderType;

@@ -11,17 +11,22 @@ class Orden extends Model
 {
     use HasFactory, SoftDeletes;
 
-    public const STATUS_PENDIENTE   = 'pendiente';
-    public const STATUS_EN_PROGRESO = 'en_progreso';
-    public const STATUS_COMPLETADA  = 'completada';
-    public const STATUS_CANCELADA   = 'cancelada';
+    public const STATUS_ABIERTA    = 'abierta';
+    public const STATUS_EN_PROCESO = 'en_proceso';
+    public const STATUS_CERRADA    = 'cerrada';
+    public const STATUS_CANCELADA  = 'cancelada';
 
     public const TRANSICIONES = [
-        self::STATUS_PENDIENTE   => [self::STATUS_EN_PROGRESO, self::STATUS_CANCELADA],
-        self::STATUS_EN_PROGRESO => [self::STATUS_COMPLETADA, self::STATUS_CANCELADA],
-        self::STATUS_COMPLETADA  => [],
-        self::STATUS_CANCELADA   => [],
+        self::STATUS_ABIERTA    => [self::STATUS_EN_PROCESO, self::STATUS_CANCELADA],
+        self::STATUS_EN_PROCESO => [self::STATUS_CERRADA,    self::STATUS_CANCELADA],
+        self::STATUS_CERRADA    => [],
+        self::STATUS_CANCELADA  => [],
     ];
+
+    protected const FOLIO_CODES        = ['preventivo' => 'PRE', 'correctivo' => 'COR'];
+    protected const FOLIO_DEFAULT_CODE = 'ORD';
+    protected const FOLIO_INCLUDE_YEAR = true;
+    protected const FOLIO_SEQ_DIGITS   = 4;
 
     protected $table = 'ordenes';
 
@@ -31,7 +36,7 @@ class Orden extends Model
         'creado_por_id',
         'asignado_a_id',
         'tipo',
-        'status',
+        'status',            // ← status
         'prioridad',
         'descripcion',
         'odometro_ingreso',
@@ -58,19 +63,22 @@ class Orden extends Model
     {
         static::creating(function (self $orden) {
             if (empty($orden->folio)) {
-                $orden->folio = static::nextFolio();
+                $orden->folio = static::nextFolio($orden->tipo);
             }
         });
     }
 
-    /**
-     * Folio con formato ORD-YYYY-0001. Debe ejecutarse dentro de una transacción
-     * (usa lockForUpdate) para evitar colisiones concurrentes.
-     */
-    public static function nextFolio(): string
+    public static function folioCode(?string $tipo): string
     {
-        $year   = (int) now()->format('Y');
-        $prefix = "ORD-{$year}-";
+        return self::FOLIO_CODES[$tipo ?? ''] ?? self::FOLIO_DEFAULT_CODE;
+    }
+
+    public static function nextFolio(?string $tipo = null): string
+    {
+        $code   = self::folioCode($tipo);
+        $prefix = self::FOLIO_INCLUDE_YEAR
+            ? sprintf('%s-%d-', $code, (int) now()->format('Y'))
+            : sprintf('%s-', $code);
 
         $last = static::withTrashed()
             ->where('folio', 'like', "{$prefix}%")
@@ -78,11 +86,12 @@ class Orden extends Model
             ->lockForUpdate()
             ->value('folio');
 
-        $next = $last ? ((int) substr($last, -4)) + 1 : 1;
+        $next = $last ? ((int) substr($last, -self::FOLIO_SEQ_DIGITS)) + 1 : 1;
 
-        return sprintf('%s%04d', $prefix, $next);
+        return $prefix . str_pad((string) $next, self::FOLIO_SEQ_DIGITS, '0', STR_PAD_LEFT);
     }
 
+    // ── Relaciones ────────────────────────────────────────────────
     public function vehiculo()
     {
         return $this->belongsTo(Vehiculo::class, 'vehiculo_id');
@@ -98,14 +107,15 @@ class Orden extends Model
         return $this->belongsTo(Usuario::class, 'asignado_a_id');
     }
 
-    public function canTransitionTo(string $newStatus): bool
+    // ── Reglas de negocio ─────────────────────────────────────────
+    public function canTransitionTo(string $nuevo): bool
     {
-        return in_array($newStatus, self::TRANSICIONES[$this->status] ?? [], true);
+        return in_array($nuevo, self::TRANSICIONES[$this->status] ?? [], true);
     }
 
     public function estaCerrada(): bool
     {
-        return in_array($this->status, [self::STATUS_COMPLETADA, self::STATUS_CANCELADA], true);
+        return in_array($this->status, [self::STATUS_CERRADA, self::STATUS_CANCELADA], true);
     }
 
     public function scopeStatus(Builder $q, ?string $status): Builder

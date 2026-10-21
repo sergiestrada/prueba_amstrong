@@ -18,11 +18,11 @@ return new class extends Migration
                   ->constrained('usuarios')->nullOnDelete();
 
             $table->enum('tipo', ['preventivo', 'correctivo']);
-            $table->enum('status', [
-                'pendiente', 'en_progreso', 'completada', 'cancelada',
-            ])->default('pendiente');
+           $table->enum('status', ['abierta','en_proceso','cerrada','cancelada'])
+      ->default('abierta');
+// resto igual: prioridad, costo_estimado, costo_real, fecha_inicio, asignado_a_id
             $table->enum('prioridad', ['baja', 'media', 'alta'])->default('media');
-
+        
             $table->text('descripcion');
             $table->unsignedInteger('odometro_ingreso');
             $table->date('fecha_programada');

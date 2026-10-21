@@ -18,6 +18,7 @@ class Usuario extends Authenticatable
     protected $fillable = ['nombre', 'email', 'password', 'rol_id', 'activo'];
 
     protected $hidden = ['password', 'remember_token'];
+   
 
     protected function casts(): array
     {

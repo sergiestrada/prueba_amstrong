@@ -20,7 +20,7 @@ class StoreOrdenRequest extends FormRequest
             'odometro_ingreso' => ['required', 'integer', 'min:0'],
             'fecha_programada' => ['required', 'date'],
             'prioridad'        => ['nullable', 'in:baja,media,alta'],
-            'costo_estimado'   => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'costo'   => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'notas'            => ['nullable', 'string', 'max:2000'],
         ];
     }

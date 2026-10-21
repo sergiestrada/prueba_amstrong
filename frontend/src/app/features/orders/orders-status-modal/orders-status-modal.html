@@ -4,7 +4,7 @@
       <div>
         <h3>Cambiar estatus</h3>
         <p class="muted small">
-          Orden <strong>{{ order.folio }}</strong> · Actual: <strong>{{ statusLabel(order.estatus) }}</strong>
+          Orden <strong>{{ order.folio }}</strong> · Actual: <strong>{{ statusLabel(order.status) }}</strong>
         </p>
       </div>
       <button class="icon-close" (click)="cancel()" aria-label="Cerrar">✕</button>
@@ -19,8 +19,8 @@
         <label>Nuevo estatus *</label>
         <div class="options">
           @for (t of availableTransitions; track t) {
-            <label class="option" [class.selected]="form.controls.estatus.value === t">
-              <input type="radio" formControlName="estatus" [value]="t">
+            <label class="option" [class.selected]="form.controls.status.value === t">
+              <input type="radio" formControlName="status" [value]="t">
               <span class="option-label">{{ statusLabel(t) }}</span>
             </label>
           }
@@ -57,10 +57,10 @@
       <footer class="modal-actions">
         <button type="button" class="btn-ghost" (click)="cancel()" [disabled]="submitting()">Cancelar</button>
         <button type="submit" class="btn-primary"
-                [disabled]="submitting() || !form.controls.estatus.value || availableTransitions.length === 0">
+                [disabled]="submitting() || !form.controls.status.value || availableTransitions.length === 0">
           {{ submitting() ? 'Guardando…' : 'Confirmar cambio' }}
         </button>
       </footer>
     </form>
   </div>
-</div>
+</div> 

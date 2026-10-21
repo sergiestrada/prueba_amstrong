@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, HostListener, Input, OnInit, Output, inject, signal } from '@angular/core';
+import {
+  Component, EventEmitter, HostListener, Input, OnInit, Output, inject, signal
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Order, OrderPayload, OrderType } from '../../../core/models/order';
 import { Vehicle } from '../../../core/models/vehicle';
@@ -14,8 +16,8 @@ import { VehiclesService } from '../../../core/services/vehicles.service';
   styleUrl: './orders-form-modal.css'
 })
 export class OrderFormModalComponent implements OnInit {
-  private readonly fb             = inject(FormBuilder);
-  private readonly ordersService  = inject(OrdersService);
+  private readonly fb              = inject(FormBuilder);
+  private readonly ordersService   = inject(OrdersService);
   private readonly vehiclesService = inject(VehiclesService);
 
   @Input() order: Order | null = null;
@@ -29,13 +31,15 @@ export class OrderFormModalComponent implements OnInit {
 
   private orderId: number | null = null;
 
-  readonly form = this.fb.nonNullable.group({
-    vehiculo_id:       [0, [Validators.required, Validators.min(1)]],
-    tipo:              ['preventivo' as OrderType, [Validators.required]],
-    descripcion:       ['', [Validators.required, Validators.maxLength(2000)]],
-    odometro_ingreso:  [0, [Validators.required, Validators.min(0)]],
-    fecha_programada:  ['', [Validators.required]],
-    notas:             ['']
+  // Form no-nonNullable para permitir costo = null (desconocido)
+  readonly form = this.fb.group({
+    vehiculo_id:      [0, [Validators.required, Validators.min(1)]],
+    tipo:             ['preventivo' as OrderType, [Validators.required]],
+    descripcion:      ['', [Validators.required, Validators.maxLength(2000)]],
+    odometro_ingreso: [0, [Validators.required, Validators.min(0)]],
+    fecha_programada: ['', [Validators.required]],
+    costo:            [null as number | null, [Validators.min(0)]],   // ← nuevo
+    notas:            ['']
   });
 
   ngOnInit(): void {
@@ -48,6 +52,7 @@ export class OrderFormModalComponent implements OnInit {
         descripcion:      this.order.descripcion,
         odometro_ingreso: this.order.odometro_ingreso,
         fecha_programada: this.order.fecha_programada,
+        costo:            this.order.costo !== null ? Number(this.order.costo) : null,
         notas:            this.order.notas ?? ''
       });
     }
@@ -58,7 +63,6 @@ export class OrderFormModalComponent implements OnInit {
     this.vehiclesService.list({ per_page: 100, sort_by: 'placa', sort_dir: 'asc' })
       .subscribe({
         next: (res) => {
-          // RN-06: excluir vehículos en baja
           const list = res.data.filter(v => v.estatus !== 'baja');
           this.vehicles.set(list);
         },
@@ -69,7 +73,6 @@ export class OrderFormModalComponent implements OnInit {
   @HostListener('document:keydown.escape')
   onEscape(): void { if (!this.submitting()) this.closed.emit(); }
 
-  /** Odómetro actual del vehículo seleccionado (para validación visual). */
   selectedVehicleOdometer(): number | null {
     const id = this.form.controls.vehiculo_id.value;
     return this.vehicles().find(v => v.id === id)?.odometro_actual ?? null;
@@ -81,25 +84,29 @@ export class OrderFormModalComponent implements OnInit {
 
     const raw = this.form.getRawValue();
 
-    // Validación local RN-04 (defensa extra al backend)
     const actual = this.selectedVehicleOdometer();
-    if (actual !== null && Number(raw.odometro_ingreso) < actual) {
-      this.errorMessage.set(`El odómetro no puede ser menor al actual del vehículo (${actual} km).`);
+    if (actual !== null && Number(raw.odometro_ingreso ?? 0) < actual) {
+      this.errorMessage.set(
+        `El odómetro no puede ser menor al actual del vehículo (${actual} km).`
+      );
       return;
     }
 
     const payload: OrderPayload = {
-      vehiculo_id:      Number(raw.vehiculo_id),
-      tipo:             raw.tipo,
-      descripcion:      raw.descripcion.trim(),
-      odometro_ingreso: Number(raw.odometro_ingreso),
-      fecha_programada: raw.fecha_programada,
+      vehiculo_id:      Number(raw.vehiculo_id ?? 0),
+      tipo:             (raw.tipo ?? 'preventivo') as OrderType,
+      descripcion:      (raw.descripcion ?? '').trim(),
+      odometro_ingreso: Number(raw.odometro_ingreso ?? 0),
+      fecha_programada: raw.fecha_programada ?? '',
+      costo:            raw.costo !== null && raw.costo !== undefined
+                          ? Number(raw.costo)
+                          : null,
       notas:            raw.notas ? raw.notas.trim() : null
     };
 
     this.submitting.set(true);
     const op$ = this.isEdit() && this.orderId !== null
-      ? this.ordersService.update(this.orderId, payload as any)
+      ? this.ordersService.update(this.orderId, payload)
       : this.ordersService.create(payload);
 
     op$.subscribe({
@@ -114,6 +121,7 @@ export class OrderFormModalComponent implements OnInit {
   get descripcion()      { return this.form.controls.descripcion; }
   get odometro_ingreso() { return this.form.controls.odometro_ingreso; }
   get fecha_programada() { return this.form.controls.fecha_programada; }
+  get costo()            { return this.form.controls.costo; }
 
   private extractError(err: any): string {
     const errors = err?.error?.errors as Record<string, string[]> | undefined;
